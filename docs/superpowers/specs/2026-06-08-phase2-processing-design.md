@@ -81,13 +81,23 @@ Chunking, embeddings, semantic search, and AI are **out of scope** — they are 
    `author` where available), `processing_status='processed'`, `processed_at=now()`, and
    update `search_vector` (instruct.md §13) so keyword search works in later phases.
 
-6. **Error handling (instruct.md §20):** any extractor/IO failure → `processing_status='failed'`,
+6. **Stored markdown artifact (linked to original):** in addition to the `markdown_text`
+   column, the worker uploads the generated markdown as a **`.md` file** to the private
+   bucket at `{user_id}/{document_id}/markdown/{basename}.md` and records its path in a new
+   `markdown_storage_path` column on `documents`. This gives every document a stored,
+   downloadable markdown rendition permanently linked to its original file (original stays at
+   `storage_path`; both are owned by the same `document_id`). Rationale: the markdown column
+   serves search/reconstruction; the stored `.md` file serves download/export/future
+   reference. Served via signed URLs only — never public.
+
+7. **Error handling (instruct.md §20):** any extractor/IO failure → `processing_status='failed'`,
    `processing_error=<message>`, original file untouched. A `failed` or `queued` document can
    be reprocessed by resetting status to `queued` (the dispatcher re-claims it). MSG parse
    failure marks failed but preserves the original.
 
-7. **Idempotency:** re-processing a document deletes nothing but overwrites the derived
-   fields; child attachment documents are created only if not already present for that parent
+8. **Idempotency:** re-processing a document deletes nothing but overwrites the derived
+   fields; the stored `.md` artifact is re-uploaded with `upsert=true` at the same path;
+   child attachment documents are created only if not already present for that parent
    (match on parent_id + filename + sha256) to avoid duplicates on reprocess.
 
 ### Explicitly out of scope (later phases)
@@ -122,8 +132,9 @@ process_document(document_id):
         child = insert document(source_type=detect(att.filename), parent_document_id=row.id,
                                  sha256, duplicate_of?, status='queued')
         storage.upload(attachmentPath(user, row.id, child.id, att.filename), att.bytes)
-  update document: extracted_text, markdown_text, email fields, search_vector,
-                   processing_status='processed', processed_at=now()
+  storage.upload(markdownPath(user, row.id, basename), result.markdown.bytes, upsert=true)
+  update document: extracted_text, markdown_text, markdown_storage_path, email fields,
+                   search_vector, processing_status='processed', processed_at=now()
   on exception: update document set processing_status='failed', processing_error=str(e)
 ```
 
@@ -144,7 +155,9 @@ PostgREST RPC. This keeps concurrency-safe claiming in the database.
 ## Acceptance criteria (instruct.md §28 subset)
 
 1. A queued document is picked up and processed without manual intervention.
-2. PDF/DOCX/XLSX/EML/MSG produce stored `extracted_text` and `markdown_text`.
+2. PDF/DOCX/XLSX/EML/MSG produce stored `extracted_text` and `markdown_text`, plus a stored
+   `.md` artifact in the bucket linked via `markdown_storage_path` and tied to the same
+   `document_id` as the original.
 3. Email attachments become child documents linked by `parent_document_id`, with their own
    stored originals, queued for their own processing.
 4. `processing_status` transitions `queued → processing → processed`, or `→ failed` with
@@ -154,5 +167,11 @@ PostgREST RPC. This keeps concurrency-safe claiming in the database.
 
 ## New migration (Phase 2)
 
-`claim_next_document()` SECURITY DEFINER function for concurrency-safe claiming, plus a
-`set_search_vector(document_id)` helper (or inline update) used by the worker.
+- `alter table documents add column markdown_storage_path text null;` — path of the stored
+  `.md` rendition (original stays in `storage_path`).
+- `claim_next_document()` SECURITY DEFINER function for concurrency-safe claiming.
+- `set_search_vector(document_id)` helper (or inline update) used by the worker.
+
+A matching `markdownPath(userId, documentId, basename)` helper is added to
+`lib/storage/paths.ts` (TS) and mirrored in the Python `supabase_client.py`, producing
+`{user_id}/{document_id}/markdown/{basename}.md`.
