@@ -1,0 +1,24 @@
+Content-Type: multipart/mixed; boundary="===============9104657028037369556=="
+MIME-Version: 1.0
+From: alice@example.com
+To: bob@example.com
+Cc: carol@example.com
+Subject: Evidence email
+Date: Mon, 08 Jun 2026 10:00:00 +0000
+Message-ID: <test-msg-id@example.com>
+
+--===============9104657028037369556==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+
+This is the body text.
+--===============9104657028037369556==
+Content-Type: application/pdf
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="evidence.pdf"
+
+JVBERi0xLjQgbWluaW1hbA==
+
+--===============9104657028037369556==--
