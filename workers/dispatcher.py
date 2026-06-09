@@ -1,5 +1,5 @@
 """
-Dispatcher: poll loop that claims queued documents and enqueues Celery tasks.
+Dispatcher: poll loop that claims queued/processed documents and enqueues Celery tasks.
 
 Run with:
     cd workers && python3 dispatcher.py
@@ -9,8 +9,9 @@ import time
 import logging
 import signal
 from config import Config
-from supabase_client import claim_next_document
+from supabase_client import claim_next_document, claim_next_for_chunking
 from jobs.process_document import process_document
+from jobs.chunk_document import chunk_document
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,23 +29,45 @@ def _handle_signal(sig, frame):
 
 
 def run_once() -> bool:
-    """Claim one document and dispatch. Return True if a doc was claimed."""
+    """
+    Claim one document for processing OR one for chunking.
+    Returns True if any work was dispatched.
+    """
+    dispatched = False
+
+    # 1. Claim for extraction/processing
     doc = claim_next_document()
-    if not doc:
-        return False
-    doc_id = doc["id"]
-    log.info("Claimed document %s (%s)", doc_id, doc.get("original_filename"))
-    try:
-        process_document.delay(doc_id)
-    except Exception as e:
-        log.error("Failed to enqueue document %s, resetting to queued: %s", doc_id, e)
+    if doc:
+        doc_id = doc["id"]
+        log.info("Claimed for processing: %s (%s)", doc_id, doc.get("original_filename"))
         try:
-            from supabase_client import update_document
-            update_document(doc_id, {"processing_status": "queued"})
-        except Exception as reset_err:
-            log.error("Failed to reset document %s status: %s", doc_id, reset_err)
-        return False
-    return True
+            process_document.delay(doc_id)
+            dispatched = True
+        except Exception as e:
+            log.error("Failed to enqueue process_document %s: %s", doc_id, e)
+            try:
+                from supabase_client import update_document
+                update_document(doc_id, {"processing_status": "queued"})
+            except Exception as reset_err:
+                log.error("Failed to reset processing status for %s: %s", doc_id, reset_err)
+
+    # 2. Claim for chunking
+    doc2 = claim_next_for_chunking()
+    if doc2:
+        doc_id2 = doc2["id"]
+        log.info("Claimed for chunking: %s (%s)", doc_id2, doc2.get("original_filename"))
+        try:
+            chunk_document.delay(doc_id2)
+            dispatched = True
+        except Exception as e:
+            log.error("Failed to enqueue chunk_document %s: %s", doc_id2, e)
+            try:
+                from supabase_client import update_document
+                update_document(doc_id2, {"chunking_status": None})
+            except Exception as reset_err:
+                log.error("Failed to reset chunking status for %s: %s", doc_id2, reset_err)
+
+    return dispatched
 
 
 def main() -> None:
