@@ -9,3 +9,4 @@ class Config:
     dispatcher_poll_seconds: float = float(
         os.environ.get("DISPATCHER_POLL_SECONDS", "3")
     )
+    embed_server_port: int = int(os.environ.get("EMBED_SERVER_PORT", "8765"))
