@@ -15,12 +15,20 @@ def upsert_file(conn: sqlite3.Connection, original_name: str,
     if row:
         return row["id"], False
     file_type = Path(original_name).suffix.lower().lstrip(".") or "unknown"
-    cur = conn.execute(
-        "INSERT INTO files (sha256, original_name, file_type, size_bytes, content)"
-        " VALUES (?,?,?,?,?)",
-        (digest, original_name, file_type, len(content), content))
-    conn.commit()
-    return cur.lastrowid, True
+    try:
+        cur = conn.execute(
+            "INSERT INTO files (sha256, original_name, file_type, size_bytes, content)"
+            " VALUES (?,?,?,?,?)",
+            (digest, original_name, file_type, len(content), content))
+        conn.commit()
+        return cur.lastrowid, True
+    except sqlite3.IntegrityError:
+        # Concurrent worker inserted the same content between our SELECT and INSERT.
+        conn.rollback()
+        row = conn.execute("SELECT id FROM files WHERE sha256=?", (digest,)).fetchone()
+        if row:
+            return row["id"], False
+        raise
 
 
 def add_location(conn: sqlite3.Connection, file_id: int, root_folder: str,
