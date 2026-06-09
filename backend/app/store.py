@@ -2,6 +2,8 @@ import hashlib
 import sqlite3
 from pathlib import Path
 
+from .chunking import chunk_markdown
+
 
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -57,6 +59,10 @@ def save_markdown(conn: sqlite3.Connection, file_id: int, content_md: str,
     conn.execute(
         "UPDATE files SET status='converted', error_message=NULL,"
         " updated_at=datetime('now') WHERE id=?", (file_id,))
+    conn.execute("DELETE FROM chunks WHERE file_id=?", (file_id,))
+    conn.executemany(
+        "INSERT INTO chunks (file_id, chunk_index, text) VALUES (?,?,?)",
+        [(file_id, i, text) for i, text in enumerate(chunk_markdown(content_md))])
     conn.commit()
 
 
