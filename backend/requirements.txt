@@ -4,3 +4,5 @@ markitdown[all]
 extract-msg
 httpx
 python-dotenv
+sqlite-vec
+numpy

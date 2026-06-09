@@ -27,6 +27,23 @@ def test_foreign_keys_enforced(conn):
             " VALUES (999, '/r', '', 'x.txt')")
 
 
+def test_v11_tables_exist(conn):
+    names = {r["name"] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")}
+    for t in ["chunks", "chats", "chat_messages"]:
+        assert t in names, f"missing table {t}"
+
+
+def test_chunks_cascade_on_file_delete(conn):
+    conn.execute(
+        "INSERT INTO files (sha256, original_name, file_type, size_bytes, content)"
+        " VALUES ('h9', 'a.txt', 'txt', 1, X'61')")
+    fid = conn.execute("SELECT id FROM files").fetchone()["id"]
+    conn.execute("INSERT INTO chunks (file_id, chunk_index, text) VALUES (?,0,'x')", (fid,))
+    conn.execute("DELETE FROM files WHERE id=?", (fid,))
+    assert conn.execute("SELECT count(*) c FROM chunks").fetchone()["c"] == 0
+
+
 def test_fts_triggers_sync(conn):
     conn.execute(
         "INSERT INTO files (sha256, original_name, file_type, size_bytes, content)"
