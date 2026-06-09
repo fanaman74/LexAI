@@ -1,9 +1,10 @@
+import os
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from . import convert, store
+from . import convert, indexer, store
 from .db import get_conn, init_db
 
 JOBS: dict[str, "IngestJob"] = {}
@@ -60,6 +61,8 @@ class IngestJob:
                 for fut in as_completed(futures):
                     fut.result()
             self._bump(status="done")
+            if os.environ.get("OPENROUTER_API_KEY"):
+                indexer.start(self.db_path)
         except Exception as exc:
             self._bump(status="done", error=str(exc))
 
