@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lexai-workers"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "celery[redis]>=5.4",
+  "supabase>=2.9",
+  "pypdf>=4.3",
+  "python-docx>=1.1",
+  "openpyxl>=3.1",
+  "extract-msg>=0.48",
+  "markdownify>=0.13",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+]
+
+[tool.setuptools]
+py-modules = ["config", "celery_app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
