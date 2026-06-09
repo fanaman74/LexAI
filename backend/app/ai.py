@@ -18,6 +18,35 @@ class AnalysisError(Exception):
     pass
 
 
+def build_doc_context(conn: sqlite3.Connection, file_ids: list[int]) -> str:
+    """Concatenate converted markdown for the files, capped per document."""
+    docs = []
+    for fid in file_ids:
+        row = conn.execute(
+            "SELECT f.original_name, m.content_md FROM files f"
+            " LEFT JOIN markdown_files m ON m.file_id = f.id WHERE f.id=?",
+            (fid,)).fetchone()
+        if row is None or row["content_md"] is None:
+            raise AnalysisError(f"file {fid} has no converted markdown yet")
+        docs.append(f"## Document: {row['original_name']}\n\n"
+                    f"{row['content_md'][:MAX_DOC_CHARS]}")
+    return "\n\n".join(docs)
+
+
+def chat_completion(messages: list[dict]) -> str:
+    """Single OpenRouter chat call; returns assistant text."""
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        raise AnalysisError("OPENROUTER_API_KEY is not set (add it to .env)")
+    response = httpx.post(
+        OPENROUTER_URL,
+        headers={"Authorization": f"Bearer {key}"},
+        json={"model": MODEL, "messages": messages},
+        timeout=180)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
+
+
 def run_analysis(conn: sqlite3.Connection, file_ids: list[int], prompt: str) -> dict:
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:

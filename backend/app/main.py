@@ -22,15 +22,17 @@ def create_app(db_path: str = DEFAULT_DB) -> FastAPI:
     def health():
         return {"status": "ok"}
 
-    from .routers import (analyses as analyses_router, files as files_router,
-                          scan as scan_router, search as search_router,
-                          semantic as semantic_router, tags as tags_router)
+    from .routers import (analyses as analyses_router, chats as chats_router,
+                          files as files_router, scan as scan_router,
+                          search as search_router, semantic as semantic_router,
+                          tags as tags_router)
     app.include_router(scan_router.router)
     app.include_router(files_router.router)
     app.include_router(search_router.router)
     app.include_router(tags_router.router)
     app.include_router(analyses_router.router)
     app.include_router(semantic_router.router)
+    app.include_router(chats_router.router)
 
     if FRONTEND_DIST.is_dir():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="spa")
