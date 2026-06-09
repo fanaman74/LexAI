@@ -13,3 +13,9 @@ export function attachmentPath(
 ): string {
   return `${userId}/${parentDocumentId}/attachments/${attachmentDocumentId}/${filename}`;
 }
+
+export function markdownPath(
+  userId: string, documentId: string, originalFilename: string
+): string {
+  return `${userId}/${documentId}/markdown/${originalFilename}.md`;
+}
