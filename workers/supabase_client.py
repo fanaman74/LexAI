@@ -171,3 +171,49 @@ def update_search_vector(document_id: str) -> None:
     client = get_client()
     resp = client.rpc("update_document_search_vector", {"doc_id": document_id}).execute()
     _check(resp, "update_search_vector")
+
+
+# ── Chunking helpers ──────────────────────────────────────────────────────────
+
+def delete_document_chunks(document_id: str) -> None:
+    """Delete all existing chunks for a document (before re-chunking)."""
+    client = get_client()
+    resp = client.table("document_chunks").delete().eq("document_id", document_id).execute()
+    _check(resp, "delete_document_chunks")
+
+
+def upsert_chunks(chunks: list[dict]) -> None:
+    """
+    Batch-upsert document chunks. Each dict must have all required columns.
+    Uses chunk_id as the conflict key.
+    """
+    if not chunks:
+        return
+    client = get_client()
+    resp = client.table("document_chunks").upsert(chunks, on_conflict="chunk_id").execute()
+    _check(resp, "upsert_chunks")
+
+
+def mark_document_chunked(document_id: str) -> None:
+    update_document(document_id, {
+        "chunking_status": "chunked",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+def mark_document_chunk_failed(document_id: str, error: str) -> None:
+    update_document(document_id, {
+        "chunking_status": "failed",
+        "processing_error": error,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+def claim_next_for_chunking() -> dict | None:
+    """Atomically claim one processed document for chunking via DB function."""
+    client = get_client()
+    resp = client.rpc("claim_next_for_chunking", {}).execute()
+    _check(resp, "claim_next_for_chunking")
+    if not resp.data:
+        return None
+    return resp.data[0] if isinstance(resp.data, list) else resp.data
