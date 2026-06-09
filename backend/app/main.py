@@ -22,8 +22,9 @@ def create_app(db_path: str = DEFAULT_DB) -> FastAPI:
     def health():
         return {"status": "ok"}
 
-    from .routers import scan as scan_router
+    from .routers import files as files_router, scan as scan_router
     app.include_router(scan_router.router)
+    app.include_router(files_router.router)
 
     if FRONTEND_DIST.is_dir():
         app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="spa")
