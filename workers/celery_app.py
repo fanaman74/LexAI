@@ -5,7 +5,7 @@ app = Celery(
     "lexai",
     broker=Config.redis_url,
     backend=Config.redis_url,
-    include=["jobs.process_document"],
+    include=["jobs.process_document", "jobs.chunk_document"],
 )
 
 app.conf.update(
