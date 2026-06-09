@@ -70,3 +70,63 @@ def test_rtf_via_textutil():
     raw = rb"{\rtf1\ansi This clause is governed by Swiss law.}"
     md, used = convert.convert_to_markdown("clause.rtf", raw)
     assert "Swiss law" in md and used == "textutil"
+
+
+import shutil
+import subprocess
+
+
+def _make_text_pdf(path, text):
+    from fpdf import FPDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", size=12)
+    pdf.multi_cell(0, 8, text)
+    pdf.output(str(path))
+
+
+def _make_blank_pdf(path):
+    from fpdf import FPDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.output(str(path))
+
+
+LONG_TEXT = ("This Services Agreement is entered into between Alpha Corp and "
+             "Beta LLC on January 5, 2026, and is governed by the laws of the "
+             "State of Delaware. Each party shall keep all information confidential.")
+
+
+def test_pdf_with_text_layer(tmp_path):
+    p = tmp_path / "contract.pdf"
+    _make_text_pdf(p, LONG_TEXT)
+    md, used = convert.convert_to_markdown("contract.pdf", p.read_bytes())
+    assert "Alpha Corp" in " ".join(md.split()) and used == "markitdown"
+
+
+def test_pdf_without_text_triggers_ocr(tmp_path, monkeypatch):
+    blank = tmp_path / "scan.pdf"
+    _make_blank_pdf(blank)
+    ocred = tmp_path / "ocred.pdf"
+    _make_text_pdf(ocred, LONG_TEXT)
+
+    def fake_run(cmd, **kwargs):
+        assert cmd[0] == "ocrmypdf"
+        shutil.copy(ocred, cmd[-1])
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(convert.subprocess, "run", fake_run)
+    md, used = convert.convert_to_markdown("scan.pdf", blank.read_bytes())
+    assert "Alpha Corp" in " ".join(md.split()) and used == "ocr"
+
+
+def test_ocr_failure_raises_conversion_error(tmp_path, monkeypatch):
+    blank = tmp_path / "scan.pdf"
+    _make_blank_pdf(blank)
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="bad pdf")
+
+    monkeypatch.setattr(convert.subprocess, "run", fake_run)
+    with pytest.raises(convert.ConversionError, match="OCR failed"):
+        convert.convert_to_markdown("scan.pdf", blank.read_bytes())
