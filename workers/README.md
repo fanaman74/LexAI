@@ -70,3 +70,33 @@ Expected: ≥ 24 tests passing (common, PDF, DOCX, XLSX, EML, MSG extractors).
 | Attachment original | `{user_id}/{parent_id}/attachments/{child_id}/{filename}` |
 
 Both original and markdown artifact are private (signed URLs only).
+
+## Phase 3: Chunking + Embeddings + Semantic Search
+
+After a document is marked `processed`, the dispatcher automatically claims it for chunking via `claim_next_for_chunking()` and dispatches a `chunk_document` Celery task.
+
+The chunker splits `markdown_text` into ~1000-token chunks (4000 chars) with ~100-token (400 char) overlap, respecting markdown headings and paragraph boundaries. Each chunk is embedded using `BAAI/bge-base-en-v1.5` (768d) and stored in `document_chunks` with the embedding vector.
+
+### Semantic search
+
+The embed server must be running to serve query embeddings:
+
+```bash
+cd workers
+source .env
+python3 embed_server.py   # http://localhost:8765
+# Health check: curl http://localhost:8765/health
+```
+
+Search endpoint: `POST /api/search/semantic` (Next.js)
+
+Request body:
+```json
+{
+  "query": "contract dispute damages",
+  "case_id": "optional-uuid",
+  "limit": 20
+}
+```
+
+Response: ranked documents with their most relevant chunks and similarity scores.
