@@ -1,11 +1,12 @@
 from __future__ import annotations
+import uuid as _uuid
+from email.utils import parsedate_to_datetime
 from celery_app import app
 from supabase_client import (
     get_document, download_file, upload_file,
     mark_processed, mark_failed,
     sha256_hex, find_duplicate, insert_child_document,
     attachment_already_exists, markdown_path, attachment_path,
-    update_document,
 )
 from extractors import extract
 from extractors.common import detect_source_type
@@ -47,19 +48,22 @@ def process_document(self, document_id: str) -> dict:
                     continue  # idempotency
                 att_source_type = detect_source_type(att.filename)
                 dup_id = find_duplicate(user_id, att_sha256)
-                child_id = insert_child_document(
+                # Generate a deterministic child ID placeholder for path construction
+                child_id = str(_uuid.uuid4())
+                att_path = attachment_path(user_id, document_id, child_id, att.filename)
+                # Upload first, then insert DB row with real path
+                upload_file(att_path, att.data, content_type=att.content_type)
+                insert_child_document(
                     user_id=user_id,
                     parent_id=document_id,
                     filename=att.filename,
                     source_type=att_source_type,
                     sha256=att_sha256,
-                    storage_path="",  # filled after upload below
+                    storage_path=att_path,
                     file_size=len(att.data),
                     duplicate_of=dup_id,
+                    child_id=child_id,
                 )
-                att_path = attachment_path(user_id, document_id, child_id, att.filename)
-                upload_file(att_path, att.data, content_type=att.content_type)
-                update_document(child_id, {"storage_path": att_path})
 
         # Build extra fields from metadata / email headers
         extra: dict = {}
@@ -87,13 +91,13 @@ def process_document(self, document_id: str) -> dict:
         return {"status": "processed", "document_id": document_id}
 
     except Exception as exc:
-        mark_failed(document_id, str(exc))
+        if self.request.retries >= self.max_retries:
+            mark_failed(document_id, str(exc))
         raise self.retry(exc=exc)
 
 
 def _parse_date(date_str: str) -> str | None:
     """Try to parse email date string to ISO-8601. Return None on failure."""
-    from email.utils import parsedate_to_datetime
     try:
         return parsedate_to_datetime(date_str).isoformat()
     except Exception:

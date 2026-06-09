@@ -27,10 +27,6 @@ def _handle_signal(sig, frame):
     _running = False
 
 
-signal.signal(signal.SIGINT, _handle_signal)
-signal.signal(signal.SIGTERM, _handle_signal)
-
-
 def run_once() -> bool:
     """Claim one document and dispatch. Return True if a doc was claimed."""
     doc = claim_next_document()
@@ -38,11 +34,19 @@ def run_once() -> bool:
         return False
     doc_id = doc["id"]
     log.info("Claimed document %s (%s)", doc_id, doc.get("original_filename"))
-    process_document.delay(doc_id)
+    try:
+        process_document.delay(doc_id)
+    except Exception as e:
+        log.error("Failed to enqueue document %s, resetting to queued: %s", doc_id, e)
+        from supabase_client import update_document
+        update_document(doc_id, {"processing_status": "queued"})
+        return False
     return True
 
 
 def main() -> None:
+    signal.signal(signal.SIGINT, _handle_signal)
+    signal.signal(signal.SIGTERM, _handle_signal)
     log.info("Dispatcher started (poll_seconds=%.1f)", Config.dispatcher_poll_seconds)
     while _running:
         try:

@@ -14,6 +14,14 @@ def get_client() -> Client:
     return _client
 
 
+def _check(resp, context: str = "") -> None:
+    """Raise RuntimeError if the Supabase response contains an error."""
+    err = getattr(resp, "error", None)
+    if err:
+        msg = f"Supabase error{f' ({context})' if context else ''}: {err}"
+        raise RuntimeError(msg)
+
+
 # ── Storage paths (mirrors lib/storage/paths.ts) ──────────────────────────────
 
 def original_path(user_id: str, document_id: str, filename: str) -> str:
@@ -41,7 +49,7 @@ def upload_file(storage_path: str, data: bytes, content_type: str = "application
     client = get_client()
     client.storage.from_(Config.storage_bucket).upload(
         storage_path, data,
-        file_options={"content-type": content_type, "upsert": str(upsert).lower()},
+        file_options={"content-type": content_type, "upsert": upsert},
     )
 
 
@@ -50,23 +58,26 @@ def upload_file(storage_path: str, data: bytes, content_type: str = "application
 def get_document(document_id: str) -> dict:
     client = get_client()
     resp = client.table("documents").select("*").eq("id", document_id).single().execute()
+    _check(resp, "get_document")
     return resp.data
 
 
 def update_document(document_id: str, fields: dict) -> None:
     client = get_client()
-    client.table("documents").update(fields).eq("id", document_id).execute()
+    resp = client.table("documents").update(fields).eq("id", document_id).execute()
+    _check(resp, "update_document")
 
 
 def mark_processed(document_id: str, extracted_text: str, markdown_text: str,
                    markdown_storage_path: str, extra_fields: dict | None = None) -> None:
+    now = datetime.now(timezone.utc).isoformat()
     fields = {
         "extracted_text": extracted_text,
         "markdown_text": markdown_text,
         "markdown_storage_path": markdown_storage_path,
         "processing_status": "processed",
-        "processed_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "processed_at": now,
+        "updated_at": now,
     }
     if extra_fields:
         extra_fields.pop("search_vector_text", None)
@@ -98,16 +109,19 @@ def find_duplicate(user_id: str, sha256: str) -> str | None:
         .limit(1)
         .execute()
     )
+    _check(resp, "find_duplicate")
     return resp.data[0]["id"] if resp.data else None
 
 
 def insert_child_document(user_id: str, parent_id: str, filename: str,
                            source_type: str, sha256: str, storage_path: str,
-                           file_size: int, duplicate_of: str | None) -> str:
+                           file_size: int, duplicate_of: str | None,
+                           child_id: str | None = None) -> str:
     """Insert an email attachment as a child document. Returns new document_id."""
+    import uuid as _uuid
     client = get_client()
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    resp = client.table("documents").insert({
+    row = {
         "user_id": user_id,
         "original_filename": filename,
         "file_extension": ext,
@@ -118,7 +132,11 @@ def insert_child_document(user_id: str, parent_id: str, filename: str,
         "source_type": source_type,
         "parent_document_id": parent_id,
         "processing_status": "queued",
-    }).execute()
+    }
+    if child_id:
+        row["id"] = child_id
+    resp = client.table("documents").insert(row).execute()
+    _check(resp, "insert_child_document")
     return resp.data[0]["id"]
 
 
@@ -134,6 +152,7 @@ def attachment_already_exists(parent_id: str, filename: str, sha256: str) -> boo
         .limit(1)
         .execute()
     )
+    _check(resp, "attachment_already_exists")
     return bool(resp.data)
 
 
@@ -141,6 +160,7 @@ def claim_next_document() -> dict | None:
     """Atomically claim one queued document via the DB function."""
     client = get_client()
     resp = client.rpc("claim_next_document", {}).execute()
+    _check(resp, "claim_next_document")
     if not resp.data:
         return None
     return resp.data[0] if isinstance(resp.data, list) else resp.data
@@ -149,4 +169,5 @@ def claim_next_document() -> dict | None:
 def update_search_vector(document_id: str) -> None:
     """Trigger search_vector recompute via DB RPC."""
     client = get_client()
-    client.rpc("update_document_search_vector", {"doc_id": document_id}).execute()
+    resp = client.rpc("update_document_search_vector", {"doc_id": document_id}).execute()
+    _check(resp, "update_search_vector")
