@@ -40,6 +40,15 @@ source .env
 python3 dispatcher.py
 ```
 
+Terminal 4 — start the embed server (needed for semantic search):
+```bash
+cd workers
+source .env
+python3 embed_server.py
+# Runs at http://localhost:8765
+# Test: curl http://localhost:8765/health
+```
+
 Upload a file via the Next.js app at http://localhost:3000. The dispatcher will
 claim it within `DISPATCHER_POLL_SECONDS` (default 3s) and Celery will process it.
 
