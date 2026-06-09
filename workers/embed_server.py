@@ -36,7 +36,7 @@ def embed(req: EmbedRequest):
         vec = embed_text(req.text, is_query=req.is_query)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    return EmbedResponse(embedding=vec, dim=len(vec), model=MODEL_NAME)
+    return EmbedResponse(embedding=vec, dim=EMBEDDING_DIM, model=MODEL_NAME)
 
 
 if __name__ == "__main__":
