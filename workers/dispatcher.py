@@ -38,8 +38,11 @@ def run_once() -> bool:
         process_document.delay(doc_id)
     except Exception as e:
         log.error("Failed to enqueue document %s, resetting to queued: %s", doc_id, e)
-        from supabase_client import update_document
-        update_document(doc_id, {"processing_status": "queued"})
+        try:
+            from supabase_client import update_document
+            update_document(doc_id, {"processing_status": "queued"})
+        except Exception as reset_err:
+            log.error("Failed to reset document %s status: %s", doc_id, reset_err)
         return False
     return True
 

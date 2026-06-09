@@ -51,8 +51,8 @@ def process_document(self, document_id: str) -> dict:
                 # Generate a deterministic child ID placeholder for path construction
                 child_id = str(_uuid.uuid4())
                 att_path = attachment_path(user_id, document_id, child_id, att.filename)
-                # Upload first, then insert DB row with real path
-                upload_file(att_path, att.data, content_type=att.content_type)
+                # Upload first (upsert=True prevents orphans on retry), then insert DB row
+                upload_file(att_path, att.data, content_type=att.content_type, upsert=True)
                 insert_child_document(
                     user_id=user_id,
                     parent_id=document_id,
