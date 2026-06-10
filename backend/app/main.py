@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import get_conn, init_db
@@ -38,7 +39,13 @@ def create_app(db_path: str = DEFAULT_DB) -> FastAPI:
     app.include_router(cases_router.router)
 
     if FRONTEND_DIST.is_dir():
-        app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="spa")
+        app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        def serve_spa(full_path: str):
+            index = FRONTEND_DIST / "index.html"
+            return FileResponse(str(index))
+
     return app
 
 
