@@ -1,4 +1,5 @@
 import tempfile
+import threading
 from pathlib import Path
 
 from fastapi import APIRouter, Request, UploadFile
@@ -20,6 +21,5 @@ async def upload_files(files: list[UploadFile], request: Request):
     job = ingest.IngestJob(tmp_dir, request.app.state.db_path)
     job.cleanup_root = tmp_dir
     ingest.JOBS[job.id] = job
-    import threading
     threading.Thread(target=job.run, daemon=True).start()
     return {"job_id": job.id}
