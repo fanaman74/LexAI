@@ -52,22 +52,22 @@ export default function Analyze() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 p-6">
-      <div className="bg-amber-50 border border-amber-300 rounded-md p-3 text-sm text-amber-800">
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 text-sm text-amber-300">
         ⚠️ AI analysis sends document text to OpenRouter (free tier). Do not use for
         documents that must never leave this machine.
       </div>
 
-      <section className="bg-white rounded-md shadow p-4">
-        <h2 className="font-semibold mb-2">Selected documents ({ids.length})</h2>
+      <section className="bg-zinc-900 rounded-md border border-zinc-800 p-4">
+        <h2 className="font-semibold mb-2 text-zinc-100">Selected documents ({ids.length})</h2>
         {ids.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No documents selected. <Link to="/library" className="text-blue-700 underline">
+          <p className="text-sm text-zinc-500">
+            No documents selected. <Link to="/library" className="text-amber-400 underline">
             Select files in the Library</Link> first.
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {files.map((f) => (
-              <span key={f.id} className="bg-slate-100 rounded-full px-3 py-1 text-sm">
+              <span key={f.id} className="bg-zinc-800 text-zinc-200 rounded-full px-3 py-1 text-sm">
                 {f.original_name}
               </span>
             ))}
@@ -77,37 +77,37 @@ export default function Analyze() {
         <div className="flex gap-2 mt-4">
           {PRESETS.map((p) => (
             <button key={p.label} onClick={() => setPrompt(p.prompt)}
-              className="border border-slate-300 rounded-full px-3 py-1 text-sm hover:bg-slate-100">
+              className="border border-zinc-700 text-zinc-300 rounded-full px-3 py-1 text-sm hover:bg-zinc-800">
               {p.label}
             </button>
           ))}
         </div>
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)}
           rows={3} placeholder="Ask a question about the selected documents…"
-          className="border rounded-md w-full px-3 py-2 mt-3" />
+          className="bg-zinc-800 border border-zinc-700 rounded-md w-full px-3 py-2 mt-3 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500" />
         <button onClick={run} disabled={busy || ids.length === 0 || !prompt.trim()}
-          className="mt-2 bg-emerald-600 disabled:bg-slate-300 text-white rounded-md px-4 py-2 font-medium">
+          className="mt-2 bg-emerald-600 disabled:bg-zinc-700 text-white rounded-md px-4 py-2 font-medium">
           {busy ? "Analyzing…" : "Run analysis"}
         </button>
-        {error && <p className="text-red-600 mt-2 text-sm">{error}</p>}
+        {error && <p className="text-red-400 mt-2 text-sm">{error}</p>}
       </section>
 
       {result && (
-        <section className="bg-white rounded-md shadow p-4 prose max-w-none">
+        <section className="bg-zinc-900 rounded-md border border-zinc-800 p-4 prose prose-invert max-w-none">
           <ReactMarkdown>{result}</ReactMarkdown>
         </section>
       )}
 
-      <section className="bg-white rounded-md shadow p-4">
-        <h2 className="font-semibold mb-2">History</h2>
-        {history.length === 0 && <p className="text-sm text-slate-500">No analyses yet.</p>}
+      <section className="bg-zinc-900 rounded-md border border-zinc-800 p-4">
+        <h2 className="font-semibold mb-2 text-zinc-100">History</h2>
+        {history.length === 0 && <p className="text-sm text-zinc-500">No analyses yet.</p>}
         {history.map((a) => (
-          <details key={a.id} className="border-b py-2">
-            <summary className="cursor-pointer text-sm">
+          <details key={a.id} className="border-b border-zinc-800/60 py-2">
+            <summary className="cursor-pointer text-sm text-zinc-300">
               <span className="font-medium">{a.prompt.slice(0, 80)}</span>
-              <span className="text-slate-400"> · {a.created_at} · {a.file_ids.length} file(s)</span>
+              <span className="text-zinc-500"> · {a.created_at} · {a.file_ids.length} file(s)</span>
             </summary>
-            <div className="prose max-w-none mt-2 text-sm">
+            <div className="prose prose-invert max-w-none mt-2 text-sm">
               <ReactMarkdown>{a.response}</ReactMarkdown>
             </div>
           </details>

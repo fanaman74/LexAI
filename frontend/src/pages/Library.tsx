@@ -14,8 +14,8 @@ function fmtSize(n: number) {
 }
 
 const statusPill = (s: string) =>
-  s === "converted" ? "bg-emerald-100 text-emerald-700" :
-  s === "failed" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700";
+  s === "converted" ? "bg-emerald-900/50 text-emerald-400" :
+  s === "failed" ? "bg-red-900/50 text-red-400" : "bg-amber-900/50 text-amber-400";
 
 export default function Library() {
   const [files, setFiles] = useState<FileRow[]>([]);
@@ -153,26 +153,26 @@ export default function Library() {
     <div className="max-w-6xl mx-auto space-y-4 p-6">
       <div className="flex items-center gap-3">
         <button onClick={startScan}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 font-medium shadow-sm">
+          className="bg-amber-500 hover:bg-amber-400 text-black rounded-lg px-4 py-2 font-medium shadow-sm">
           + Add folder…
         </button>
         <button onClick={runIndex}
-          className="border border-indigo-300 text-indigo-700 hover:bg-indigo-50 rounded-lg px-4 py-2 font-medium">
+          className="border border-amber-500 text-amber-400 hover:bg-amber-500/10 rounded-lg px-4 py-2 font-medium">
           ⚡ Index for semantic search
         </button>
         {scan && scan.status !== "done" && (
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-zinc-500">
             Converting {scan.done}/{scan.total}…
           </span>
         )}
         {scan && scan.status === "done" && (
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-zinc-500">
             Scan done: {scan.converted} converted · {scan.failed} failed
             {scan.skipped.length > 0 && ` · ${scan.skipped.length} skipped`}
           </span>
         )}
         {indexStatus && (
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-zinc-500">
             {indexStatus.status === "running"
               ? `Indexing ${indexStatus.indexed}/${indexStatus.total}…`
               : `Indexed ${indexStatus.indexed} chunks${indexStatus.failed ? `, ${indexStatus.failed} failed` : ""}`}
@@ -181,11 +181,11 @@ export default function Library() {
       </div>
 
       <div className="flex gap-2">
-        <div className="flex rounded-lg border border-slate-300 overflow-hidden">
+        <div className="flex rounded-lg border border-zinc-700 overflow-hidden">
           {(["keyword", "semantic"] as const).map((m) => (
             <button key={m} onClick={() => { setMode(m); setSemantic(null); }}
               className={`px-3 py-2 text-sm font-medium ${
-                mode === m ? "bg-indigo-600 text-white" : "bg-white text-slate-600"}`}>
+                mode === m ? "bg-amber-500 text-black" : "bg-zinc-900 text-zinc-400"}`}>
               {m === "keyword" ? "🔎 Keyword" : "✨ Semantic"}
             </button>
           ))}
@@ -195,29 +195,29 @@ export default function Library() {
           placeholder={mode === "keyword"
             ? 'Keyword search (e.g. indemnification, "force majeure")'
             : "Semantic search — describe what you're looking for, press Enter"}
-          className="flex-1 border border-slate-300 rounded-lg px-3 py-2 bg-white" />
+          className="flex-1 border border-zinc-700 rounded-lg px-3 py-2 bg-zinc-900 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500" />
         {mode === "semantic" && (
           <button onClick={runSemantic} disabled={searching || !q.trim()}
-            className="bg-indigo-600 disabled:bg-slate-300 text-white rounded-lg px-4 font-medium">
+            className="bg-amber-500 disabled:bg-zinc-700 text-black rounded-lg px-4 font-medium">
             {searching ? "Searching…" : "Search"}
           </button>
         )}
         <button disabled={selected.length === 0}
           onClick={() => navigate(`/chat?ids=${selected.join(",")}`)}
-          className="bg-emerald-600 disabled:bg-slate-300 text-white rounded-lg px-4 font-medium">
+          className="bg-emerald-600 disabled:bg-zinc-700 text-white rounded-lg px-4 font-medium">
           💬 Chat ({selected.length})
         </button>
         <button disabled={selected.length === 0}
           onClick={() => navigate(`/review?ids=${selected.join(",")}`)}
-          className="bg-violet-600 disabled:bg-slate-300 text-white rounded-lg px-4 font-medium">
+          className="bg-violet-600 disabled:bg-zinc-700 text-white rounded-lg px-4 font-medium">
           ⚖️ New Case ({selected.length})
         </button>
       </div>
 
-      <div className="space-y-2 bg-white rounded-xl shadow-sm border border-slate-200 p-3">
+      <div className="space-y-2 bg-zinc-900 rounded-xl border border-zinc-800 p-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-400 w-14">FOLDERS</span>
-          {folderBubbles.length === 0 && <span className="text-xs text-slate-400">none yet</span>}
+          <span className="text-xs font-semibold text-zinc-500 w-14">FOLDERS</span>
+          {folderBubbles.length === 0 && <span className="text-xs text-zinc-500">none yet</span>}
           {folderBubbles.map((f) => (
             <Bubble key={f.full} label={`📁 ${f.label}`} count={f.count}
               active={activeFolders.includes(f.full)}
@@ -225,14 +225,14 @@ export default function Library() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-400 w-14">TYPE</span>
+          <span className="text-xs font-semibold text-zinc-500 w-14">TYPE</span>
           {FILE_TYPES.map((t) => (
             <Bubble key={t} label={t} active={types.includes(t)}
               onClick={() => toggleIn(types, t, setTypes)} />
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-slate-400 w-14">STATUS</span>
+          <span className="text-xs font-semibold text-zinc-500 w-14">STATUS</span>
           {STATUSES.map((s) => (
             <Bubble key={s} label={s} active={statuses.includes(s)}
               onClick={() => toggleIn(statuses, s, setStatuses)} />
@@ -240,7 +240,7 @@ export default function Library() {
         </div>
         {tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-semibold text-slate-400 w-14">TAGS</span>
+            <span className="text-xs font-semibold text-zinc-500 w-14">TAGS</span>
             {tags.map((t) => (
               <Bubble key={t.name} label={`#${t.name}`} count={t.count}
                 active={activeTags.includes(t.name)}
@@ -251,38 +251,38 @@ export default function Library() {
       </div>
 
       {error && (
-        <p className="text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">
+        <p className="text-red-400 bg-red-950/50 border border-red-800/50 rounded-lg px-3 py-2 text-sm">
           {error}
         </p>
       )}
 
       {mode === "semantic" && semantic !== null && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-slate-500">
+          <h3 className="text-sm font-semibold text-zinc-500">
             Semantic results ({semantic.length})
           </h3>
           {semantic.length === 0 && (
-            <p className="text-slate-400 text-sm">No relevant passages found.</p>
+            <p className="text-zinc-400 text-sm">No relevant passages found.</p>
           )}
           {semantic.map((r) => (
             <div key={r.file_id}
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex gap-4 items-start">
+              className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 flex gap-4 items-start">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <Link to={`/files/${r.file_id}`}
-                    className="font-medium text-indigo-700 hover:underline">
+                    className="font-medium text-amber-400 hover:underline">
                     {r.original_name}
                   </Link>
-                  <span className="text-xs bg-indigo-50 text-indigo-600 rounded-full px-2 py-0.5">
+                  <span className="text-xs bg-amber-500/10 text-amber-400 rounded-full px-2 py-0.5">
                     {(r.score * 100).toFixed(0)}% match
                   </span>
-                  <span className="text-xs text-slate-400 uppercase">{r.file_type}</span>
+                  <span className="text-xs text-zinc-500 uppercase">{r.file_type}</span>
                 </div>
-                <p className="text-sm text-slate-600 mt-1">…{r.snippet}…</p>
+                <p className="text-sm text-zinc-400 mt-1">…{r.snippet}…</p>
               </div>
               <div className="flex gap-2 shrink-0">
                 <Link to={`/files/${r.file_id}`}
-                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm hover:bg-slate-50">
+                  className="border border-zinc-700 text-zinc-300 rounded-lg px-3 py-1.5 text-sm hover:bg-zinc-800">
                   Open
                 </Link>
                 <Link to={`/chat?ids=${r.file_id}`}
@@ -296,10 +296,10 @@ export default function Library() {
       )}
 
       {(mode === "keyword" || semantic === null) && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+        <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-x-auto">
           <table className="w-full text-sm min-w-max">
-            <thead className="bg-slate-50">
-              <tr className="text-left text-slate-500 border-b border-slate-200">
+            <thead className="bg-zinc-950">
+              <tr className="text-left text-zinc-500 border-b border-zinc-800">
                 <th className="p-3 w-8"></th>
                 <th className="p-3">Name</th>
                 <th className="p-3">Folder</th>
@@ -312,45 +312,45 @@ export default function Library() {
             </thead>
             <tbody>
               {files.map((f) => (
-                <tr key={f.id} className="border-b border-slate-100 hover:bg-indigo-50/40">
+                <tr key={f.id} className="border-b border-zinc-800/60 hover:bg-zinc-800 transition-colors">
                   <td className="p-3">
                     <input type="checkbox" checked={selected.includes(f.id)}
                       onChange={() => toggleSelect(f.id)} />
                   </td>
                   <td className="p-3">
                     <Link to={`/files/${f.id}`}
-                      className="text-indigo-700 font-medium hover:underline">
+                      className="text-amber-400 font-medium hover:underline">
                       {f.original_name}
                     </Link>
                   </td>
-                  <td className="p-3 text-slate-500 truncate max-w-40">
+                  <td className="p-3 text-zinc-500 truncate max-w-40">
                     {f.locations.map((l) => l.subfolder_path || "/").join(", ")}
                   </td>
-                  <td className="p-3 uppercase text-xs text-slate-500">{f.file_type}</td>
-                  <td className="p-3 text-slate-500">{fmtSize(f.size_bytes)}</td>
+                  <td className="p-3 uppercase text-xs text-zinc-500">{f.file_type}</td>
+                  <td className="p-3 text-zinc-500">{fmtSize(f.size_bytes)}</td>
                   <td className="p-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusPill(f.status)}`}>
                       {f.status}
                     </span>
                   </td>
-                  <td className="p-3 text-slate-500">{f.tags.map((t) => `#${t}`).join(" ")}</td>
+                  <td className="p-3 text-zinc-500">{f.tags.map((t) => `#${t}`).join(" ")}</td>
                   <td className="p-3">
                     <div className="flex gap-1 justify-end">
                       <Link to={`/files/${f.id}`} title="View Markdown"
-                        className="border border-slate-300 rounded-md px-2 py-1 text-xs hover:bg-slate-100">
+                        className="border border-zinc-700 text-zinc-300 rounded-md px-2 py-1 text-xs hover:bg-zinc-800">
                         MD
                       </Link>
                       <a href={`/api/files/${f.id}/original?inline=1`} target="_blank"
                         rel="noreferrer" title="View original"
-                        className="border border-slate-300 rounded-md px-2 py-1 text-xs hover:bg-slate-100">
+                        className="border border-zinc-700 text-zinc-300 rounded-md px-2 py-1 text-xs hover:bg-zinc-800">
                         Original
                       </a>
                       <button onClick={() => reveal(f.id)} title="Reveal in Finder"
-                        className="border border-slate-300 rounded-md px-2 py-1 text-xs hover:bg-slate-100">
+                        className="border border-zinc-700 text-zinc-300 rounded-md px-2 py-1 text-xs hover:bg-zinc-800">
                         📂
                       </button>
                       <Link to={`/chat?ids=${f.id}`} title="Chat with this file"
-                        className="border border-emerald-300 text-emerald-700 rounded-md px-2 py-1 text-xs hover:bg-emerald-50">
+                        className="border border-emerald-700 text-emerald-400 rounded-md px-2 py-1 text-xs hover:bg-emerald-900/20">
                         💬
                       </Link>
                       {confirmDeleteId === f.id ? (
@@ -363,7 +363,7 @@ export default function Library() {
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            className="text-slate-500 hover:text-white"
+                            className="text-zinc-500 hover:text-white"
                           >
                             Cancel
                           </button>
@@ -371,7 +371,7 @@ export default function Library() {
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteId(f.id)}
-                          className="text-slate-500 hover:text-red-400 transition-colors"
+                          className="text-zinc-500 hover:text-red-400 transition-colors"
                           title="Remove from index"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,7 +385,7 @@ export default function Library() {
                 </tr>
               ))}
               {files.length === 0 && (
-                <tr><td colSpan={8} className="p-10 text-center text-slate-400">
+                <tr><td colSpan={8} className="p-10 text-center text-zinc-500">
                   No files yet — click "Add folder…" to ingest documents.
                 </td></tr>
               )}

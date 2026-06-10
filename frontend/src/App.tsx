@@ -10,7 +10,7 @@ import Cases from "./pages/Cases";
 
 export default function App() {
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex min-h-screen bg-black">
       <Sidebar />
       <main className="md:ml-60 mt-14 md:mt-0 flex-1 min-w-0">
         <Routes>

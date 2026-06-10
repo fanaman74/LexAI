@@ -85,40 +85,40 @@ export default function ChatPage() {
 
   return (
     <div className="max-w-6xl mx-auto flex gap-4 p-6" style={{ height: "100vh" }}>
-      <aside className="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-slate-200 p-3 overflow-y-auto">
+      <aside className="w-64 shrink-0 bg-zinc-900 rounded-xl border border-zinc-800 p-3 overflow-y-auto">
         <button onClick={newChat}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 text-sm font-medium mb-3">
+          className="w-full bg-amber-500 hover:bg-amber-400 text-black rounded-lg py-2 text-sm font-medium mb-3">
           + New chat
         </button>
-        <h3 className="text-xs font-semibold text-slate-400 mb-1">RECENT</h3>
-        {chats.length === 0 && <p className="text-xs text-slate-400">No chats yet.</p>}
+        <h3 className="text-xs font-semibold text-zinc-500 mb-1">RECENT</h3>
+        {chats.length === 0 && <p className="text-xs text-zinc-500">No chats yet.</p>}
         {chats.map((c) => (
           <button key={c.id} onClick={() => openChat(c.id)}
             className={`block w-full text-left text-sm rounded-lg px-2 py-1.5 mb-1 truncate ${
-              activeChat?.id === c.id ? "bg-indigo-50 text-indigo-700 font-medium"
-                : "text-slate-600 hover:bg-slate-50"}`}>
+              activeChat?.id === c.id ? "bg-amber-500/10 text-amber-400 font-medium"
+                : "text-zinc-400 hover:bg-zinc-800"}`}>
             {c.title}
           </button>
         ))}
       </aside>
 
-      <section className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200">
-        <header className="border-b border-slate-100 px-4 py-3">
+      <section className="flex-1 flex flex-col bg-zinc-900 rounded-xl border border-zinc-800">
+        <header className="border-b border-zinc-800 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-700">Chatting with:</span>
+            <span className="text-sm font-semibold text-zinc-200">Chatting with:</span>
             {contextNames.length === 0 ? (
-              <span className="text-sm text-slate-400">
-                no files — <Link to="/library" className="text-indigo-600 underline">pick some in the Library</Link>
+              <span className="text-sm text-zinc-500">
+                no files — <Link to="/library" className="text-amber-400 underline">pick some in the Library</Link>
               </span>
             ) : contextNames.map((n, i) => (
-              <span key={i} className="bg-slate-100 rounded-full px-3 py-0.5 text-xs">{n}</span>
+              <span key={i} className="bg-zinc-800 text-zinc-200 rounded-full px-3 py-0.5 text-xs">{n}</span>
             ))}
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.length === 0 && (
-            <p className="text-slate-400 text-sm text-center mt-10">
+            <p className="text-zinc-500 text-sm text-center mt-10">
               Ask anything about the selected documents — answers cite the source text.
             </p>
           )}
@@ -126,26 +126,26 @@ export default function ChatPage() {
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex"}>
               <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                 m.role === "user"
-                  ? "bg-indigo-600 text-white rounded-br-sm"
-                  : "bg-slate-100 text-slate-800 rounded-bl-sm prose prose-sm max-w-[80%]"}`}>
+                  ? "bg-amber-500 text-black rounded-br-sm"
+                  : "bg-zinc-800 text-zinc-100 rounded-bl-sm prose prose-sm prose-invert max-w-[80%]"}`}>
                 {m.role === "user" ? m.content : <ReactMarkdown>{m.content}</ReactMarkdown>}
               </div>
             </div>
           ))}
-          {busy && <p className="text-slate-400 text-sm">Thinking…</p>}
+          {busy && <p className="text-zinc-500 text-sm">Thinking…</p>}
           <div ref={bottomRef} />
         </div>
 
         {error && (
-          <p className="text-red-700 text-sm px-4 pb-1">{error}</p>
+          <p className="text-red-400 text-sm px-4 pb-1">{error}</p>
         )}
-        <footer className="border-t border-slate-100 p-3 flex gap-2">
+        <footer className="border-t border-zinc-800 p-3 flex gap-2">
           <input value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="Ask about these documents… (Enter to send)"
-            className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+            className="flex-1 border border-zinc-700 bg-zinc-800 text-white placeholder-zinc-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
           <button onClick={send} disabled={busy || !input.trim()}
-            className="bg-indigo-600 disabled:bg-slate-300 text-white rounded-lg px-4 text-sm font-medium">
+            className="bg-amber-500 disabled:bg-zinc-700 text-black rounded-lg px-4 text-sm font-medium">
             Send
           </button>
         </footer>

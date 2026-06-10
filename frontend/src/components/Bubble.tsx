@@ -11,13 +11,13 @@ export default function Bubble({ label, active, onClick, count }: BubbleProps) {
       onClick={onClick}
       className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
         active
-          ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-          : "bg-white border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-700"
+          ? "bg-amber-500 border-amber-500 text-black shadow-sm"
+          : "bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-amber-500 hover:text-amber-400"
       }`}
     >
       {label}
       {count !== undefined && (
-        <span className={active ? "text-indigo-200 ml-1" : "text-slate-400 ml-1"}>
+        <span className={active ? "text-black/60 ml-1" : "text-zinc-500 ml-1"}>
           {count}
         </span>
       )}

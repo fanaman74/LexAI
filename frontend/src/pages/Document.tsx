@@ -37,8 +37,8 @@ export default function DocumentView() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (!doc) return <p className="text-slate-400">Loading…</p>;
+  if (error) return <p className="text-red-400 p-6">{error}</p>;
+  if (!doc) return <p className="text-zinc-400 p-6">Loading…</p>;
 
   async function addTag() {
     if (!newTag.trim()) return;
@@ -80,24 +80,24 @@ export default function DocumentView() {
 
   return (
     <div className="max-w-6xl mx-auto flex gap-6 p-6">
-      <article className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <article className="flex-1 bg-zinc-900 rounded-xl border border-zinc-800 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-slate-800">{doc.original_name}</h1>
+          <h1 className="text-xl font-bold text-zinc-100">{doc.original_name}</h1>
           <div className="flex items-center gap-2">
             <Link to={`/chat?ids=${doc.id}`}
               className="bg-emerald-600 text-white rounded-lg px-3 py-1.5 text-sm hover:bg-emerald-700">
               💬 Chat
             </Link>
-            <Link to="/library" className="text-indigo-700 text-sm hover:underline">← Library</Link>
+            <Link to="/library" className="text-amber-400 text-sm hover:underline">← Library</Link>
           </div>
         </div>
 
-        <div className="flex gap-1 border-b border-slate-200 mb-4">
+        <div className="flex gap-1 border-b border-zinc-800 mb-4">
           {(["md", "original"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
-                tab === t ? "bg-indigo-50 text-indigo-700 border border-b-0 border-slate-200"
-                  : "text-slate-500 hover:text-slate-700"}`}>
+                tab === t ? "bg-amber-500/10 text-amber-400 border border-b-0 border-zinc-800"
+                  : "text-zinc-500 hover:text-zinc-300"}`}>
               {t === "md" ? "Markdown" : "Original"}
             </button>
           ))}
@@ -105,17 +105,17 @@ export default function DocumentView() {
 
         {tab === "md" && (
           doc.markdown ? (
-            <div className="prose max-w-none">
+            <div className="prose prose-invert max-w-none">
               <ReactMarkdown>{doc.markdown.content_md}</ReactMarkdown>
             </div>
           ) : (
             <div>
-              <p className="text-amber-700">
+              <p className="text-amber-400">
                 No converted text ({doc.status}
                 {doc.error_message ? `: ${doc.error_message}` : ""}).
               </p>
               <button onClick={retry}
-                className="mt-2 bg-indigo-600 text-white rounded-lg px-3 py-1 text-sm">
+                className="mt-2 bg-amber-500 text-black rounded-lg px-3 py-1 text-sm font-medium">
                 Retry conversion
               </button>
             </div>
@@ -126,15 +126,15 @@ export default function DocumentView() {
           canInline ? (
             <iframe title="original"
               src={`/api/files/${doc.id}/original?inline=1`}
-              className="w-full rounded-lg border border-slate-200"
+              className="w-full rounded-lg border border-zinc-700"
               style={{ height: "70vh" }} />
           ) : (
-            <div className="text-center py-16 text-slate-500">
+            <div className="text-center py-16 text-zinc-400">
               <p className="mb-3">
                 No in-browser preview for <b>.{doc.file_type}</b> files.
               </p>
               <a href={`/api/files/${doc.id}/original`}
-                className="bg-slate-800 text-white rounded-lg px-4 py-2">
+                className="bg-zinc-800 text-white rounded-lg px-4 py-2 hover:bg-zinc-700">
                 ⬇ Download original
               </a>
             </div>
@@ -143,66 +143,67 @@ export default function DocumentView() {
       </article>
 
       <aside className="w-80 shrink-0 space-y-4">
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-sm space-y-1">
-          <h3 className="font-semibold mb-2 text-slate-700">Metadata</h3>
-          <p><span className="text-slate-500">Type:</span> {doc.file_type}</p>
-          <p><span className="text-slate-500">Size:</span> {doc.size_bytes} bytes</p>
-          <p><span className="text-slate-500">Status:</span> {doc.status}</p>
-          <p><span className="text-slate-500">Added:</span> {doc.created_at}</p>
+        <section className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 text-sm space-y-1">
+          <h3 className="font-semibold mb-2 text-zinc-200">Metadata</h3>
+          <p><span className="text-zinc-400">Type:</span> <span className="text-zinc-300">{doc.file_type}</span></p>
+          <p><span className="text-zinc-400">Size:</span> <span className="text-zinc-300">{doc.size_bytes} bytes</span></p>
+          <p><span className="text-zinc-400">Status:</span> <span className="text-zinc-300">{doc.status}</span></p>
+          <p><span className="text-zinc-400">Added:</span> <span className="text-zinc-300">{doc.created_at}</span></p>
           {doc.markdown && (
-            <p><span className="text-slate-500">Converter:</span> {doc.markdown.converter_used}
-              {" · "}{doc.markdown.word_count} words</p>
+            <p><span className="text-zinc-400">Converter:</span> <span className="text-zinc-300">{doc.markdown.converter_used}
+              {" · "}{doc.markdown.word_count} words</span></p>
           )}
-          <p className="break-all"><span className="text-slate-500">SHA256:</span> {doc.sha256}</p>
-          <h4 className="font-semibold pt-2 text-slate-700">Locations</h4>
+          <p className="break-all"><span className="text-zinc-400">SHA256:</span> <span className="text-zinc-300">{doc.sha256}</span></p>
+          <h4 className="font-semibold pt-2 text-zinc-200">Locations</h4>
           {doc.locations.map((l, i) => (
             <div key={i} className="flex items-start gap-2">
-              <p className="break-all text-slate-600 flex-1">
+              <p className="break-all text-zinc-400 flex-1">
                 {l.root_folder}/{l.subfolder_path ? l.subfolder_path + "/" : ""}{l.filename}
               </p>
               <button onClick={() => reveal(i)} title="Reveal in Finder"
-                className="border border-slate-300 rounded-md px-2 py-0.5 text-xs hover:bg-slate-100 shrink-0">
+                className="border border-zinc-700 text-zinc-300 rounded-md px-2 py-0.5 text-xs hover:bg-zinc-800 shrink-0">
                 📂 Open
               </button>
             </div>
           ))}
           <a href={`/api/files/${doc.id}/original`}
-            className="inline-block mt-3 bg-slate-800 text-white rounded-lg px-3 py-1.5">
+            className="inline-block mt-3 bg-zinc-800 text-white rounded-lg px-3 py-1.5 hover:bg-zinc-700">
             ⬇ Download original
           </a>
         </section>
 
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-sm">
-          <h3 className="font-semibold mb-2 text-slate-700">Tags</h3>
+        <section className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 text-sm">
+          <h3 className="font-semibold mb-2 text-zinc-200">Tags</h3>
           <div className="flex flex-wrap gap-1 mb-2">
             {doc.tags.map((t) => (
-              <span key={t} className="bg-indigo-100 text-indigo-800 rounded-full px-2 py-0.5">
-                #{t} <button onClick={() => removeTag(t)} className="text-indigo-400">×</button>
+              <span key={t} className="bg-amber-500/10 text-amber-400 rounded-full px-2 py-0.5">
+                #{t} <button onClick={() => removeTag(t)} className="text-amber-400 hover:text-amber-300">×</button>
               </span>
             ))}
           </div>
           <div className="flex gap-2">
             <input value={newTag} onChange={(e) => setNewTag(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTag()}
-              placeholder="add tag…" className="border border-slate-300 rounded-lg px-2 py-1 flex-1" />
+              placeholder="add tag…"
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 flex-1 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500" />
             <button onClick={addTag}
-              className="bg-indigo-600 text-white rounded-lg px-3">+</button>
+              className="bg-amber-500 text-black rounded-lg px-3 font-bold hover:bg-amber-400">+</button>
           </div>
         </section>
 
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-sm">
-          <h3 className="font-semibold mb-2 text-slate-700">Notes</h3>
+        <section className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 text-sm">
+          <h3 className="font-semibold mb-2 text-zinc-200">Notes</h3>
           {doc.notes.map((n) => (
-            <div key={n.id} className="border-b border-slate-100 py-2">
-              <p>{n.content}</p>
-              <p className="text-xs text-slate-400">{n.created_at}</p>
+            <div key={n.id} className="border-b border-zinc-800/60 py-2">
+              <p className="text-zinc-300">{n.content}</p>
+              <p className="text-xs text-zinc-500">{n.created_at}</p>
             </div>
           ))}
           <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)}
             placeholder="add a note…" rows={3}
-            className="border border-slate-300 rounded-lg w-full px-2 py-1 mt-2" />
+            className="bg-zinc-800 border border-zinc-700 rounded-lg w-full px-2 py-1 mt-2 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500" />
           <button onClick={addNote}
-            className="bg-indigo-600 text-white rounded-lg px-3 py-1 mt-1">Save note</button>
+            className="bg-amber-500 text-black rounded-lg px-3 py-1 mt-1 font-medium hover:bg-amber-400">Save note</button>
         </section>
       </aside>
     </div>

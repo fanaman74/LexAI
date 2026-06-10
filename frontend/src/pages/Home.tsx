@@ -129,9 +129,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 flex flex-col items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black flex flex-col items-center justify-center relative overflow-hidden">
       {/* background glow orb */}
-      <div className="absolute w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
 
       <div className="relative z-10 text-center px-6 max-w-2xl w-full">
         <h1
@@ -139,11 +139,11 @@ export default function Home() {
           style={{ animation: "fadeSlideUp 0.6s ease-out 0.1s forwards" }}
         >
           Your Legal Documents,{" "}
-          <span className="text-indigo-400">Intelligently Organized</span>
+          <span className="text-amber-400">Intelligently Organized</span>
         </h1>
 
         <p
-          className="text-slate-300 text-base sm:text-xl mb-10 opacity-0"
+          className="text-zinc-300 text-base sm:text-xl mb-10 opacity-0"
           style={{ animation: "fadeSlideUp 0.6s ease-out 0.3s forwards" }}
         >
           Ingest, search, and analyze case files with AI — entirely on your machine.
@@ -156,13 +156,13 @@ export default function Home() {
           <button
             onClick={openModal}
             disabled={uploading}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 text-white rounded-xl px-6 sm:px-8 py-3.5 font-semibold text-base sm:text-lg shadow-lg transition-colors"
+            className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-700 text-black rounded-xl px-6 sm:px-8 py-3.5 font-semibold text-base sm:text-lg shadow-lg transition-colors"
           >
             {uploading ? "Uploading…" : "Upload Files"}
           </button>
           <button
             onClick={startScan}
-            className="border border-indigo-400 text-indigo-300 hover:bg-indigo-900/40 rounded-xl px-6 sm:px-8 py-3.5 font-semibold text-base sm:text-lg transition-colors"
+            className="border border-amber-500 text-amber-400 hover:bg-amber-500/10 rounded-xl px-6 sm:px-8 py-3.5 font-semibold text-base sm:text-lg transition-colors"
           >
             Add Folder
           </button>
@@ -175,7 +175,7 @@ export default function Home() {
           >
             {error && <p className="text-red-400">{error}</p>}
             {scan && scan.status !== "done" && (
-              <p className="text-slate-300">Converting {scan.done}/{scan.total}…</p>
+              <p className="text-zinc-300">Converting {scan.done}/{scan.total}…</p>
             )}
             {scan && scan.status === "done" && (
               <p className="text-emerald-400">
@@ -189,7 +189,7 @@ export default function Home() {
           className="mt-8 opacity-0"
           style={{ animation: "fadeSlideUp 0.6s ease-out 0.7s forwards" }}
         >
-          <Link to="/library" className="text-slate-400 hover:text-white text-sm transition-colors">
+          <Link to="/library" className="text-zinc-400 hover:text-white text-sm transition-colors">
             Browse Library →
           </Link>
         </div>
@@ -210,7 +210,7 @@ export default function Home() {
               className="bg-white/5 backdrop-blur border border-white/10 rounded-xl px-6 sm:px-8 py-4 text-center"
             >
               <p className="text-2xl sm:text-3xl font-bold text-white">{s.value}</p>
-              <p className="text-xs text-slate-400 mt-1 uppercase tracking-wide">{s.label}</p>
+              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wide">{s.label}</p>
             </div>
           ))}
         </div>
