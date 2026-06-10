@@ -28,6 +28,9 @@ export interface FileRow {
   created_at: string;
   locations: FileLocation[];
   tags: string[];
+  has_markdown: boolean;
+  keywords: string[];
+  summary: string | null;
 }
 
 export interface FolderEntry {
@@ -95,4 +98,34 @@ export interface Case {
   created_at: string;
   file_count: number;
   files: CaseFile[];
+}
+
+export interface SearchResult {
+  chunk_id: number;
+  document_id: number;
+  original_filename: string;
+  file_type: string;
+  parent_document_id: number | null;
+  page_number: number | null;
+  section_title: string | null;
+  chunk_text: string;
+  vec_score: number;
+  fts_score: number;
+  rrf_score: number;
+  neighbors: Array<{ chunk_index: number; chunk_text: string; page_number: number | null }>;
+  doc_summary: string | null;
+  doc_keywords: string[];
+  email_metadata: Record<string, string> | null;
+}
+
+export async function searchDocuments(
+  q: string,
+  options: { file_type?: string; limit?: number } = {}
+): Promise<{ results: SearchResult[]; query: string }> {
+  const params = new URLSearchParams({ q });
+  if (options.file_type) params.set("file_type", options.file_type);
+  if (options.limit) params.set("limit", String(options.limit));
+  const res = await fetch(`/api/search?${params}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
 }
