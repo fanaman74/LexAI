@@ -89,8 +89,9 @@ def test_semantic_search_ranks_by_similarity(client, fake_embeddings):
     assert len([r for r in results if r["file_id"] == fid1]) == 1
 
 
-def test_semantic_search_without_key_400(client, monkeypatch):
+def test_semantic_search_embedding_error_400(client, monkeypatch):
     _seed(client)
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openrouter")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     res = client.get("/api/semantic-search", params={"q": "lease"})
     assert res.status_code == 400

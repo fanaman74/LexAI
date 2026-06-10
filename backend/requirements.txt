@@ -6,3 +6,4 @@ httpx
 python-dotenv
 sqlite-vec
 numpy
+fastembed

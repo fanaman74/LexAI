@@ -73,13 +73,15 @@ def test_embed_texts_batches_and_parses(monkeypatch):
 
     monkeypatch.setattr(embeddings.httpx, "post", fake_post)
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openrouter")
     texts = [f"t{i}" for i in range(100)]  # > one batch of 96
     out = embeddings.embed_texts(texts)
     assert len(out) == 100 and len(calls) == 2
     assert calls[0]["model"] == embeddings.EMBEDDING_MODEL
 
 
-def test_embed_texts_requires_key(monkeypatch):
+def test_embed_texts_openrouter_requires_key(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "openrouter")
     with pytest.raises(embeddings.EmbeddingError, match="OPENROUTER_API_KEY"):
         embeddings.embed_texts(["x"])

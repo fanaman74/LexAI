@@ -61,8 +61,7 @@ class IngestJob:
                 for fut in as_completed(futures):
                     fut.result()
             self._bump(status="done")
-            if os.environ.get("OPENROUTER_API_KEY"):
-                indexer.start(self.db_path)
+            indexer.start(self.db_path)  # local embeddings need no API key
         except Exception as exc:
             self._bump(status="done", error=str(exc))
 
