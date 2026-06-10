@@ -34,12 +34,20 @@ export default function Home() {
   function startPoll(job_id: string, onDone?: () => void) {
     if (pollRef.current) window.clearInterval(pollRef.current);
     pollRef.current = window.setInterval(async () => {
-      const prog = await api<ScanProgress>(`/api/scan/${job_id}`);
-      setScan(prog);
-      if (prog.status === "done") {
-        if (pollRef.current) window.clearInterval(pollRef.current);
-        refreshStats();
-        onDone?.();
+      try {
+        const prog = await api<ScanProgress>(`/api/scan/${job_id}`);
+        setScan(prog);
+        if (prog.status === "done") {
+          window.clearInterval(pollRef.current!);
+          pollRef.current = null;
+          refreshStats();
+          onDone?.();
+        }
+      } catch {
+        window.clearInterval(pollRef.current!);
+        pollRef.current = null;
+        setUploading(false);
+        setError("Lost contact with server — please try again.");
       }
     }, 500);
   }
