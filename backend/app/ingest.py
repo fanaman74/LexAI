@@ -38,6 +38,7 @@ class IngestJob:
             "skipped": [], "error": None,
         }
         self.cleanup_root: str | None = None
+        self.case_id: int | None = None
 
     def snapshot(self) -> dict:
         with self._lock:
@@ -78,6 +79,14 @@ class IngestJob:
             subfolder = str(path.parent.relative_to(self.root))
             store.add_location(conn, file_id, str(self.root),
                                "" if subfolder == "." else subfolder, path.name)
+            if self.case_id is not None:
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO case_files (case_id, file_id) VALUES (?, ?)",
+                        (self.case_id, file_id))
+                    conn.commit()
+                except Exception:
+                    pass
             self._bump(**{"new" if created else "existing": 1})
 
             status = conn.execute(

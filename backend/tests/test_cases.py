@@ -52,3 +52,21 @@ def test_add_and_remove_file_from_case(client):
     assert r3.status_code == 200
     detail2 = client.get(f"/api/cases/{case_id}").json()
     assert not any(f["id"] == file_id for f in detail2["files"])
+
+
+def test_upload_with_case_id_links_files(client):
+    case_id = client.post("/api/cases", json={"name": "Auto Link"}).json()["id"]
+    import io, time
+    f = io.BytesIO(b"contract text")
+    r = client.post("/api/upload",
+        data={"case_id": case_id},
+        files={"files": ("contract.txt", f, "text/plain")})
+    assert r.status_code == 200
+    job_id = r.json()["job_id"]
+    for _ in range(20):
+        prog = client.get(f"/api/scan/{job_id}").json()
+        if prog["status"] == "done":
+            break
+        time.sleep(0.5)
+    detail = client.get(f"/api/cases/{case_id}").json()
+    assert detail["file_count"] >= 1
