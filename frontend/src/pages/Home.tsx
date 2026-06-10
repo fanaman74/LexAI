@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import type { IndexStatus, ScanProgress } from "../api";
@@ -11,7 +11,7 @@ export default function Home() {
   const [stats, setStats] = useState<{ total: number; indexed: number; failed: number } | null>(null);
   const pollRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  const refreshStats = useCallback(() => {
     Promise.all([
       api<{ files: { status: string }[] }>("/api/files"),
       api<IndexStatus>("/api/index/status"),
@@ -24,12 +24,30 @@ export default function Home() {
         });
       })
       .catch(() => {});
-    return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
   }, []);
+
+  useEffect(() => {
+    refreshStats();
+    return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
+  }, [refreshStats]);
+
+  function startPoll(job_id: string, onDone?: () => void) {
+    if (pollRef.current) window.clearInterval(pollRef.current);
+    pollRef.current = window.setInterval(async () => {
+      const prog = await api<ScanProgress>(`/api/scan/${job_id}`);
+      setScan(prog);
+      if (prog.status === "done") {
+        if (pollRef.current) window.clearInterval(pollRef.current);
+        refreshStats();
+        onDone?.();
+      }
+    }, 500);
+  }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setUploading(true);
     setError("");
     setScan(null);
@@ -41,14 +59,7 @@ export default function Home() {
         headers: {},
         body: formData,
       });
-      pollRef.current = window.setInterval(async () => {
-        const prog = await api<ScanProgress>(`/api/scan/${job_id}`);
-        setScan(prog);
-        if (prog.status === "done") {
-          if (pollRef.current) window.clearInterval(pollRef.current);
-          setUploading(false);
-        }
-      }, 500);
+      startPoll(job_id, () => setUploading(false));
     } catch (err) {
       setError((err as Error).message);
       setUploading(false);
@@ -65,13 +76,7 @@ export default function Home() {
         method: "POST",
         body: JSON.stringify({ path: picked.path }),
       });
-      pollRef.current = window.setInterval(async () => {
-        const prog = await api<ScanProgress>(`/api/scan/${job_id}`);
-        setScan(prog);
-        if (prog.status === "done") {
-          if (pollRef.current) window.clearInterval(pollRef.current);
-        }
-      }, 500);
+      startPoll(job_id);
     } catch (err) {
       setError((err as Error).message);
     }
