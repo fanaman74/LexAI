@@ -140,7 +140,7 @@ export default function Library() {
   }));
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4 p-6">
       <div className="flex items-center gap-3">
         <button onClick={startScan}
           className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 font-medium shadow-sm">
@@ -196,6 +196,11 @@ export default function Library() {
           onClick={() => navigate(`/chat?ids=${selected.join(",")}`)}
           className="bg-emerald-600 disabled:bg-slate-300 text-white rounded-lg px-4 font-medium">
           💬 Chat ({selected.length})
+        </button>
+        <button disabled={selected.length === 0}
+          onClick={() => navigate(`/review?ids=${selected.join(",")}`)}
+          className="bg-violet-600 disabled:bg-slate-300 text-white rounded-lg px-4 font-medium">
+          ⚖️ New Case ({selected.length})
         </button>
       </div>
 
