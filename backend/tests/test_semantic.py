@@ -53,6 +53,27 @@ def test_index_embeds_pending_chunks(client, fake_embeddings):
     assert _wait_index(client)["indexed"] == 0
 
 
+def test_index_backfills_chunks_for_pre_chunking_files(client, fake_embeddings):
+    """Files converted before the chunks table existed get chunked at index time."""
+    conn = get_conn(client.app.state.db_path)
+    fid, _ = store.upsert_file(conn, "old.txt", b"z")
+    store.save_markdown(conn, fid, "An old lease document.", "text")
+    conn.execute("DELETE FROM chunks WHERE file_id=?", (fid,))  # simulate v1.0 data
+    conn.commit()
+    conn.close()
+
+    client.post("/api/index")
+    status = _wait_index(client)
+    assert status["indexed"] == 1
+
+    conn = get_conn(client.app.state.db_path)
+    row = conn.execute(
+        "SELECT count(*) c FROM chunks WHERE file_id=? AND embedding IS NOT NULL",
+        (fid,)).fetchone()
+    assert row["c"] == 1
+    conn.close()
+
+
 def test_semantic_search_ranks_by_similarity(client, fake_embeddings):
     fid1, fid2 = _seed(client)
     client.post("/api/index")

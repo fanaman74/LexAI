@@ -1,6 +1,7 @@
 import threading
 
 from . import vectors
+from .chunking import chunk_markdown
 from .db import get_conn
 from .embeddings import EmbeddingError, embed_texts
 
@@ -25,9 +26,24 @@ def start(db_path: str) -> bool:
     return True
 
 
+def _backfill_chunks(conn) -> None:
+    """Chunk converted files that predate the chunks table (v1.0 data)."""
+    rows = conn.execute(
+        "SELECT m.file_id, m.content_md FROM markdown_files m"
+        " LEFT JOIN chunks c ON c.file_id = m.file_id"
+        " WHERE c.id IS NULL").fetchall()
+    for row in rows:
+        conn.executemany(
+            "INSERT INTO chunks (file_id, chunk_index, text) VALUES (?,?,?)",
+            [(row["file_id"], i, text)
+             for i, text in enumerate(chunk_markdown(row["content_md"]))])
+    conn.commit()
+
+
 def _run(db_path: str):
     conn = get_conn(db_path)
     try:
+        _backfill_chunks(conn)
         rows = conn.execute(
             "SELECT id, text FROM chunks WHERE embedding IS NULL ORDER BY id"
         ).fetchall()
