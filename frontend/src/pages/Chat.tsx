@@ -108,7 +108,7 @@ export default function ChatPage() {
             <span className="text-sm font-semibold text-slate-700">Chatting with:</span>
             {contextNames.length === 0 ? (
               <span className="text-sm text-slate-400">
-                no files — <Link to="/" className="text-indigo-600 underline">pick some in the Library</Link>
+                no files — <Link to="/library" className="text-indigo-600 underline">pick some in the Library</Link>
               </span>
             ) : contextNames.map((n, i) => (
               <span key={i} className="bg-slate-100 rounded-full px-3 py-0.5 text-xs">{n}</span>

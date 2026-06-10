@@ -61,7 +61,7 @@ export default function Analyze() {
         <h2 className="font-semibold mb-2">Selected documents ({ids.length})</h2>
         {ids.length === 0 ? (
           <p className="text-sm text-slate-500">
-            No documents selected. <Link to="/" className="text-blue-700 underline">
+            No documents selected. <Link to="/library" className="text-blue-700 underline">
             Select files in the Library</Link> first.
           </p>
         ) : (

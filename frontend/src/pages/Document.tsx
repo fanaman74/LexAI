@@ -88,7 +88,7 @@ export default function DocumentView() {
               className="bg-emerald-600 text-white rounded-lg px-3 py-1.5 text-sm hover:bg-emerald-700">
               💬 Chat
             </Link>
-            <Link to="/" className="text-indigo-700 text-sm hover:underline">← Library</Link>
+            <Link to="/library" className="text-indigo-700 text-sm hover:underline">← Library</Link>
           </div>
         </div>
 
