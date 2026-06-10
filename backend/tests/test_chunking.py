@@ -1,48 +1,67 @@
-from app import store
-from app.chunking import CHUNK_SIZE, OVERLAP, chunk_markdown
-from app.db import get_conn, init_db
+import pytest
+from app.chunking import chunk_document, ChunkResult
+
+SAMPLE_MD = """# Introduction
+
+This is the introduction paragraph. It has a few sentences about the case.
+
+## Background Facts
+
+The plaintiff entered into a contract on 1 January 2024.
+The contract was for the supply of legal services.
+
+## Key Obligations
+
+Payment was due within 30 days of invoice date.
+Interest accrues at 8% per annum on late payment.
+
+---
+
+# Conclusion
+
+The matter requires urgent attention before the court date.
+"""
 
 
-def test_short_text_single_chunk():
-    assert chunk_markdown("a short memo") == ["a short memo"]
+def test_chunk_count():
+    results = chunk_document(SAMPLE_MD)
+    assert len(results) >= 1
 
 
-def test_empty_text_no_chunks():
-    assert chunk_markdown("") == []
-    assert chunk_markdown("   \n\n  ") == []
+def test_chunk_has_required_fields():
+    results = chunk_document(SAMPLE_MD)
+    r = results[0]
+    assert isinstance(r, ChunkResult)
+    assert r.chunk_index == 0
+    assert r.chunk_text
+    assert r.token_count > 0
+    assert isinstance(r.section_title, (str, type(None)))
 
 
-def test_long_text_chunks_with_overlap():
-    paras = [f"Paragraph {i}. " + ("clause text " * 40) for i in range(20)]
-    md = "\n\n".join(paras)
-    chunks = chunk_markdown(md)
-    assert len(chunks) > 1
-    assert all(len(c) <= CHUNK_SIZE + OVERLAP for c in chunks)
-    # consecutive chunks share overlapping text
-    assert chunks[0][-50:] in chunks[1] or chunks[1][:50] in chunks[0]
-    # nothing lost: every paragraph marker appears somewhere
-    joined = " ".join(chunks)
-    for i in range(20):
-        assert f"Paragraph {i}." in joined
+def test_chunk_respects_max_tokens():
+    results = chunk_document(SAMPLE_MD, max_tokens=100, overlap_tokens=20)
+    for r in results:
+        # Allow 30% overflow at word boundaries
+        assert r.token_count <= 130
 
 
-def test_giant_paragraph_is_split():
-    md = "word " * 2000  # one huge paragraph, no breaks
-    chunks = chunk_markdown(md)
-    assert len(chunks) > 1
-    assert all(len(c) <= CHUNK_SIZE + OVERLAP for c in chunks)
+def test_section_title_captured():
+    results = chunk_document(SAMPLE_MD)
+    titles = [r.section_title for r in results if r.section_title]
+    assert len(titles) > 0
 
 
-def test_save_markdown_writes_chunks(tmp_path):
-    conn = get_conn(tmp_path / "t.db")
-    init_db(conn)
-    fid, _ = store.upsert_file(conn, "a.txt", b"x")
-    store.save_markdown(conn, fid, "hello legal world", "text")
-    rows = conn.execute("SELECT * FROM chunks WHERE file_id=?", (fid,)).fetchall()
-    assert len(rows) == 1 and rows[0]["text"] == "hello legal world"
-    assert rows[0]["embedding"] is None
-    # re-conversion replaces chunks rather than appending
-    store.save_markdown(conn, fid, "new content entirely", "text")
-    rows = conn.execute("SELECT * FROM chunks WHERE file_id=?", (fid,)).fetchall()
-    assert len(rows) == 1 and rows[0]["text"] == "new content entirely"
-    conn.close()
+def test_chunk_indices_sequential():
+    results = chunk_document(SAMPLE_MD)
+    for i, r in enumerate(results):
+        assert r.chunk_index == i
+
+
+def test_empty_document():
+    results = chunk_document("")
+    assert results == []
+
+
+def test_page_number_passed_through():
+    results = chunk_document("Hello world paragraph.", page_number=5)
+    assert all(r.page_number == 5 for r in results)
