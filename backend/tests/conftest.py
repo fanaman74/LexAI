@@ -10,6 +10,6 @@ from app.main import create_app  # noqa: E402
 
 
 @pytest.fixture
-def client(tmp_path):
-    app = create_app(str(tmp_path / "api.db"))
+def client():
+    app = create_app()
     return TestClient(app)

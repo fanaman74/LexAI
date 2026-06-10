@@ -1,12 +1,14 @@
 import json
 import sqlite3
 import subprocess
+import threading
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from .. import convert, store
+from ..db import get_conn
 from ..deps import get_db
 
 router = APIRouter(prefix="/api")
@@ -17,19 +19,27 @@ LIST_COLUMNS = """f.id, f.original_name, f.file_type, f.size_bytes, f.status,
      'subfolder_path', l.subfolder_path, 'filename', l.filename))
    FROM file_locations l WHERE l.file_id = f.id) AS locations,
   (SELECT json_group_array(t.name) FROM file_tags ft
-   JOIN tags t ON t.id = ft.tag_id WHERE ft.file_id = f.id) AS tags"""
+   JOIN tags t ON t.id = ft.tag_id WHERE ft.file_id = f.id) AS tags,
+  EXISTS(SELECT 1 FROM markdown_files m WHERE m.file_id = f.id) AS has_markdown,
+  (SELECT m.keywords FROM markdown_files m WHERE m.file_id = f.id) AS keywords,
+  (SELECT m.summary FROM markdown_files m WHERE m.file_id = f.id) AS summary"""
 
 
 def _row_to_file(row) -> dict:
     d = dict(row)
     d["locations"] = json.loads(d["locations"])
     d["tags"] = sorted(json.loads(d["tags"]))
+    try:
+        d["keywords"] = json.loads(d["keywords"]) if d.get("keywords") else []
+    except Exception:
+        d["keywords"] = []
     return d
 
 
 @router.get("/files")
 def list_files(folder: str | None = None, file_type: str | None = None,
                status: str | None = None, tag: str | None = None,
+               case_id: int | None = None,
                q: str | None = None, db: sqlite3.Connection = Depends(get_db)):
     where, params = [], []
     if folder:
@@ -50,6 +60,9 @@ def list_files(folder: str | None = None, file_type: str | None = None,
             "EXISTS (SELECT 1 FROM file_tags ft JOIN tags t ON t.id=ft.tag_id"
             " WHERE ft.file_id=f.id AND t.name=?)")
         params.append(tag)
+    if case_id is not None:
+        where.append("EXISTS (SELECT 1 FROM case_files cf WHERE cf.file_id=f.id AND cf.case_id=?)")
+        params.append(case_id)
     if q:
         where.append(
             "f.id IN (SELECT m.file_id FROM markdown_fts"
@@ -76,6 +89,11 @@ def folder_tree(db: sqlite3.Connection = Depends(get_db)):
     return {"folders": [dict(r) for r in rows]}
 
 
+@router.get("/files/summarise-all/status")
+def summarise_all_status_get():
+    return _summarise_progress
+
+
 @router.get("/files/{file_id}")
 def file_detail(file_id: int, db: sqlite3.Connection = Depends(get_db)):
     row = db.execute(
@@ -89,9 +107,21 @@ def file_detail(file_id: int, db: sqlite3.Connection = Depends(get_db)):
         "SELECT root_folder, subfolder_path, filename, scanned_at"
         " FROM file_locations WHERE file_id=?", (file_id,)).fetchall()]
     md = db.execute(
-        "SELECT content_md, converter_used, converted_at, word_count"
+        "SELECT content_md, converter_used, converted_at, word_count, keywords, summary"
         " FROM markdown_files WHERE file_id=?", (file_id,)).fetchone()
-    detail["markdown"] = dict(md) if md else None
+    if md:
+        md_dict = dict(md)
+        if md_dict.get("keywords"):
+            import json as _json
+            try:
+                md_dict["keywords"] = _json.loads(md_dict["keywords"])
+            except Exception:
+                md_dict["keywords"] = []
+        else:
+            md_dict["keywords"] = []
+        detail["markdown"] = md_dict
+    else:
+        detail["markdown"] = None
     detail["tags"] = sorted(r["name"] for r in db.execute(
         "SELECT t.name FROM file_tags ft JOIN tags t ON t.id=ft.tag_id"
         " WHERE ft.file_id=?", (file_id,)).fetchall())
@@ -148,6 +178,68 @@ def reveal_in_finder(file_id: int, body: RevealBody,
     return {"ok": True}
 
 
+_summarise_progress: dict = {"running": False, "done": 0, "total": 0, "errors": 0}
+
+
+@router.post("/files/summarise-all")
+def summarise_all_files(request: Request, db: sqlite3.Connection = Depends(get_db)):
+    """Queue background LLM summarisation for all converted files missing keywords/summary."""
+    if _summarise_progress["running"]:
+        return {"status": "already_running", **_summarise_progress}
+
+    rows = db.execute(
+        "SELECT m.file_id FROM markdown_files m"
+        " WHERE (m.keywords IS NULL OR m.keywords = '') AND m.content_md IS NOT NULL"
+        " ORDER BY m.file_id").fetchall()
+    file_ids = [r["file_id"] for r in rows]
+    if not file_ids:
+        return {"status": "nothing_to_do", "total": 0}
+
+    def _run():
+        _summarise_progress.update(running=True, done=0, total=len(file_ids), errors=0)
+        from .. import ai
+        for fid in file_ids:
+            conn = get_conn()
+            try:
+                md_row = conn.execute(
+                    "SELECT content_md FROM markdown_files WHERE file_id=?", (fid,)).fetchone()
+                if md_row:
+                    kws, summary = ai.summarise_document(md_row["content_md"])
+                    conn.execute(
+                        "UPDATE markdown_files SET keywords=?, summary=? WHERE file_id=?",
+                        (json.dumps(kws), summary, fid))
+                    conn.commit()
+            except Exception:
+                _summarise_progress["errors"] += 1
+            finally:
+                conn.close()
+                _summarise_progress["done"] += 1
+        _summarise_progress["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"status": "started", "total": len(file_ids)}
+
+
+@router.post("/files/{file_id}/summarise")
+def summarise_file(file_id: int, db: sqlite3.Connection = Depends(get_db)):
+    """(Re)generate keywords + summary for a file that already has markdown."""
+    import json as _json
+    from .. import ai
+    md_row = db.execute(
+        "SELECT content_md FROM markdown_files WHERE file_id=?", (file_id,)).fetchone()
+    if md_row is None:
+        raise HTTPException(400, "file has no converted markdown")
+    try:
+        keywords, summary = ai.summarise_document(md_row["content_md"])
+        db.execute(
+            "UPDATE markdown_files SET keywords=?, summary=? WHERE file_id=?",
+            (_json.dumps(keywords), summary, file_id))
+        db.commit()
+        return {"ok": True, "keywords": keywords, "summary": summary}
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+
 @router.post("/files/{file_id}/retry")
 def retry_conversion(file_id: int, db: sqlite3.Connection = Depends(get_db)):
     row = db.execute(
@@ -161,6 +253,14 @@ def retry_conversion(file_id: int, db: sqlite3.Connection = Depends(get_db)):
     except convert.ConversionError as exc:
         store.set_status(db, file_id, "failed", str(exc))
         return {"status": "failed", "error": str(exc)}
+
+
+@router.delete("/files")
+def delete_all_files(db: sqlite3.Connection = Depends(get_db)):
+    count = db.execute("SELECT count(*) c FROM files").fetchone()["c"]
+    db.execute("DELETE FROM files")
+    db.commit()
+    return {"ok": True, "deleted": count}
 
 
 @router.delete("/files/{file_id}")

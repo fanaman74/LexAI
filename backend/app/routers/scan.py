@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from .. import ingest
@@ -11,13 +11,14 @@ router = APIRouter(prefix="/api")
 
 class ScanRequest(BaseModel):
     path: str
+    case_id: int | None = None
 
 
 @router.post("/scan")
-def start_scan(body: ScanRequest, request: Request):
+def start_scan(body: ScanRequest):
     if not Path(body.path).is_dir():
         raise HTTPException(400, f"not a folder: {body.path}")
-    job_id = ingest.start_scan(body.path, request.app.state.db_path)
+    job_id = ingest.start_scan(body.path, case_id=body.case_id)
     return {"job_id": job_id}
 
 

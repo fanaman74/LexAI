@@ -3,7 +3,7 @@ import tempfile
 import threading
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request, UploadFile
+from fastapi import APIRouter, Form, UploadFile
 
 from .. import ingest
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api")
 
 
 @router.post("/upload")
-async def upload_files(files: list[UploadFile], request: Request,
+async def upload_files(files: list[UploadFile],
                        case_id: int | None = Form(None)):
     tmp_dir = tempfile.mkdtemp(prefix="lexai_upload_")
     try:
@@ -21,7 +21,7 @@ async def upload_files(files: list[UploadFile], request: Request,
             sub.mkdir()
             dest = sub / safe_name
             dest.write_bytes(await file.read())
-        job = ingest.IngestJob(tmp_dir, request.app.state.db_path)
+        job = ingest.IngestJob(tmp_dir)
         job.cleanup_root = tmp_dir
         job.case_id = case_id
         ingest.JOBS[job.id] = job

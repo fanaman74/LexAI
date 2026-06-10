@@ -1,23 +1,19 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .db import get_conn, init_db
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DB = os.environ.get("LEXAI_DB", str(PROJECT_ROOT / "data" / "lexai.db"))
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 
 
-def create_app(db_path: str = DEFAULT_DB) -> FastAPI:
+def create_app() -> FastAPI:
     app = FastAPI(title="LexAIv2")
-    app.state.db_path = db_path
-    conn = get_conn(db_path)
-    init_db(conn)
-    conn.close()
 
     @app.get("/api/health")
     def health():

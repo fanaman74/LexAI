@@ -5,8 +5,9 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from . import convert, indexer, store
-from .db import get_conn, init_db
+from . import convert, store
+from .db import get_conn
+from .pipeline import _run_pipeline
 
 JOBS: dict[str, "IngestJob"] = {}
 MAX_WORKERS = 4
@@ -27,10 +28,9 @@ def scan_folder(root) -> tuple[list[Path], list[str]]:
 
 
 class IngestJob:
-    def __init__(self, root: str, db_path: str):
+    def __init__(self, root: str):
         self.id = uuid.uuid4().hex[:12]
         self.root = Path(root)
-        self.db_path = db_path
         self._lock = threading.Lock()
         self._progress = {
             "status": "scanning", "root": str(root), "total": 0, "done": 0,
@@ -54,9 +54,6 @@ class IngestJob:
 
     def run(self):
         try:
-            conn = get_conn(self.db_path)
-            init_db(conn)
-            conn.close()
             supported, skipped = scan_folder(self.root)
             self._bump(status="converting", total=len(supported), skipped=skipped)
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
@@ -64,7 +61,6 @@ class IngestJob:
                 for fut in as_completed(futures):
                     fut.result()
             self._bump(status="done")
-            indexer.start(self.db_path)  # local embeddings need no API key
         except Exception as exc:
             self._bump(status="done", error=str(exc))
         finally:
@@ -72,32 +68,36 @@ class IngestJob:
                 shutil.rmtree(self.cleanup_root, ignore_errors=True)
 
     def _process_one(self, path: Path):
-        conn = get_conn(self.db_path)
+        conn = get_conn()
         try:
             content = path.read_bytes()
-            file_id, created = store.upsert_file(conn, path.name, content)
+            doc_id, created = store.upsert_document(conn, path.name, content)
             subfolder = str(path.parent.relative_to(self.root))
-            store.add_location(conn, file_id, str(self.root),
+            store.add_location(conn, doc_id, str(self.root),
                                "" if subfolder == "." else subfolder, path.name)
             if self.case_id is not None:
                 try:
                     conn.execute(
-                        "INSERT OR IGNORE INTO case_files (case_id, file_id) VALUES (?, ?)",
-                        (self.case_id, file_id))
+                        "INSERT INTO case_documents (case_id, document_id) VALUES (%s,%s)"
+                        " ON CONFLICT DO NOTHING",
+                        (self.case_id, doc_id))
                     conn.commit()
                 except Exception:
                     pass
             self._bump(**{"new" if created else "existing": 1})
 
-            status = conn.execute(
-                "SELECT status FROM files WHERE id=?", (file_id,)).fetchone()["status"]
-            if status in ("pending", "failed", "needs_ocr"):
+            status_row = conn.execute(
+                "SELECT processing_status FROM documents WHERE id=%s",
+                (doc_id,)).fetchone()
+            current_status = (status_row["processing_status"]
+                              if status_row else "uploaded")
+
+            if current_status in ("uploaded", "failed", "extracting"):
                 try:
-                    md, used = convert.convert_to_markdown(path.name, content)
-                    store.save_markdown(conn, file_id, md, used)
-                    self._bump(converted=1, **({"ocr": 1} if used == "ocr" else {}))
-                except convert.ConversionError as exc:
-                    store.set_status(conn, file_id, "failed", str(exc))
+                    _run_pipeline(conn, doc_id, path.name, content, parent_id=None)
+                    self._bump(converted=1)
+                except Exception as exc:
+                    store.set_status(conn, doc_id, "failed", str(exc))
                     self._bump(failed=1)
         except Exception:
             self._bump(failed=1)
@@ -106,8 +106,9 @@ class IngestJob:
             conn.close()
 
 
-def start_scan(root: str, db_path: str) -> str:
-    job = IngestJob(root, db_path)
+def start_scan(root: str, case_id: int | None = None) -> str:
+    job = IngestJob(root)
+    job.case_id = case_id
     JOBS[job.id] = job
     threading.Thread(target=job.run, daemon=True).start()
     return job.id
