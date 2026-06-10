@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { api } from "../api";
@@ -52,15 +52,18 @@ export default function CaseReview() {
       .catch(() => {});
   }, []);
 
+  const docCacheRef = useRef(docCache);
+  docCacheRef.current = docCache;
+
   const loadDoc = useCallback(
     async (id: number) => {
-      if (docCache[id]) return;
+      if (docCacheRef.current[id]) return;
       try {
         const doc = await api<DocDetail>(`/api/files/${id}`);
         setDocCache((c) => ({ ...c, [id]: doc }));
       } catch { /* ignore */ }
     },
-    [docCache],
+    [],
   );
 
   useEffect(() => {
@@ -90,8 +93,17 @@ export default function CaseReview() {
         body: JSON.stringify({ file_ids: pinnedIds, prompt }),
       });
       setResult(res.response);
-      const h = await api<{ analyses: Analysis[] }>("/api/analyses");
-      setHistory(h.analyses);
+      setHistory((h) => [
+        {
+          id: Date.now(),
+          file_ids: pinnedIds,
+          prompt,
+          response: res.response,
+          model: "",
+          created_at: new Date().toISOString(),
+        },
+        ...h,
+      ]);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -191,10 +203,16 @@ export default function CaseReview() {
               ))}
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              {activeDoc?.markdown ? (
-                <div className="prose max-w-none bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                  <ReactMarkdown>{activeDoc.markdown.content_md}</ReactMarkdown>
-                </div>
+              {activeDoc ? (
+                activeDoc.markdown ? (
+                  <div className="prose max-w-none bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <ReactMarkdown>{activeDoc.markdown.content_md}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                    Document not yet converted.
+                  </div>
+                )
               ) : (
                 <div className="flex items-center justify-center h-full text-slate-400 text-sm">
                   {activeDocId !== null ? "Loading…" : "Select a pinned document"}
