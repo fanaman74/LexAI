@@ -1,5 +1,3 @@
-import sqlite3
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -17,24 +15,23 @@ class AddFiles(BaseModel):
     file_ids: list[int]
 
 
-def _case_with_files(conn: sqlite3.Connection, case_id: int) -> dict | None:
-    row = conn.execute(
-        "SELECT id, name, description, created_at FROM cases WHERE id=?",
+def _case_with_files(db, case_id: int) -> dict | None:
+    row = db.execute(
+        "SELECT id, name, description, created_at FROM cases WHERE id=%s",
         (case_id,)).fetchone()
     if row is None:
         return None
-    files = conn.execute(
-        """SELECT f.id, f.original_name, f.status,
-           EXISTS(SELECT 1 FROM markdown_files m WHERE m.file_id=f.id) AS has_markdown
-           FROM case_files cf JOIN files f ON f.id=cf.file_id
-           WHERE cf.case_id=? ORDER BY cf.added_at DESC""",
+    files = db.execute(
+        """SELECT d.id, d.original_filename, d.processing_status, d.summary
+           FROM case_documents cd JOIN documents d ON d.id=cd.document_id
+           WHERE cd.case_id=%s ORDER BY cd.added_at DESC""",
         (case_id,)).fetchall()
     return {**dict(row), "file_count": len(files),
             "files": [dict(f) for f in files]}
 
 
 @router.get("/cases")
-def list_cases(db: sqlite3.Connection = Depends(get_db)):
+def list_cases(db=Depends(get_db)):
     rows = db.execute(
         "SELECT id FROM cases ORDER BY created_at DESC").fetchall()
     return {"cases": [c for r in rows
@@ -42,19 +39,20 @@ def list_cases(db: sqlite3.Connection = Depends(get_db)):
 
 
 @router.post("/cases")
-def create_case(body: CreateCase, db: sqlite3.Connection = Depends(get_db)):
+def create_case(body: CreateCase, db=Depends(get_db)):
     cur = db.execute(
-        "INSERT INTO cases (name, description) VALUES (?, ?)",
+        "INSERT INTO cases (name, description) VALUES (%s, %s) RETURNING id",
         (body.name.strip(), body.description.strip()))
-    db.commit()
-    row = db.execute(
-        "SELECT id, name, description, created_at FROM cases WHERE id=?",
-        (cur.lastrowid,)).fetchone()
-    return {**dict(row), "file_count": 0, "files": []}
+    row = cur.fetchone()
+    new_id = row["id"]
+    detail = db.execute(
+        "SELECT id, name, description, created_at FROM cases WHERE id=%s",
+        (new_id,)).fetchone()
+    return {**dict(detail), "file_count": 0, "files": []}
 
 
 @router.get("/cases/{case_id}")
-def get_case(case_id: int, db: sqlite3.Connection = Depends(get_db)):
+def get_case(case_id: int, db=Depends(get_db)):
     case = _case_with_files(db, case_id)
     if case is None:
         raise HTTPException(404, "case not found")
@@ -62,32 +60,28 @@ def get_case(case_id: int, db: sqlite3.Connection = Depends(get_db)):
 
 
 @router.post("/cases/{case_id}/files")
-def add_files_to_case(case_id: int, body: AddFiles,
-                      db: sqlite3.Connection = Depends(get_db)):
-    if db.execute("SELECT 1 FROM cases WHERE id=?", (case_id,)).fetchone() is None:
+def add_files_to_case(case_id: int, body: AddFiles, db=Depends(get_db)):
+    if db.execute("SELECT 1 FROM cases WHERE id=%s", (case_id,)).fetchone() is None:
         raise HTTPException(404, "case not found")
     for fid in body.file_ids:
         db.execute(
-            "INSERT OR IGNORE INTO case_files (case_id, file_id) VALUES (?, ?)",
+            "INSERT INTO case_documents (case_id, document_id)"
+            " VALUES (%s, %s) ON CONFLICT DO NOTHING",
             (case_id, fid))
-    db.commit()
     return {"ok": True}
 
 
 @router.delete("/cases/{case_id}/files/{file_id}")
-def remove_file_from_case(case_id: int, file_id: int,
-                           db: sqlite3.Connection = Depends(get_db)):
+def remove_file_from_case(case_id: int, file_id: int, db=Depends(get_db)):
     db.execute(
-        "DELETE FROM case_files WHERE case_id=? AND file_id=?",
+        "DELETE FROM case_documents WHERE case_id=%s AND document_id=%s",
         (case_id, file_id))
-    db.commit()
     return {"ok": True}
 
 
 @router.delete("/cases/{case_id}")
-def delete_case(case_id: int, db: sqlite3.Connection = Depends(get_db)):
-    if db.execute("SELECT 1 FROM cases WHERE id=?", (case_id,)).fetchone() is None:
+def delete_case(case_id: int, db=Depends(get_db)):
+    if db.execute("SELECT 1 FROM cases WHERE id=%s", (case_id,)).fetchone() is None:
         raise HTTPException(404, "case not found")
-    db.execute("DELETE FROM cases WHERE id=?", (case_id,))
-    db.commit()
+    db.execute("DELETE FROM cases WHERE id=%s", (case_id,))
     return {"ok": True}
