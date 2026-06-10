@@ -155,3 +155,20 @@ def test_retry_reconverts_failed_file(client):
     res = client.post(f"/api/files/{fid}/retry")
     assert res.status_code == 200
     assert res.json()["status"] == "converted"
+
+
+def test_delete_file_removes_from_index(client):
+    fid1, fid2 = _seed(client)
+    res = client.delete(f"/api/files/{fid1}")
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+    # Verify file no longer appears in list
+    files = client.get("/api/files").json()["files"]
+    assert not any(f["id"] == fid1 for f in files)
+    # Verify other file still exists
+    assert any(f["id"] == fid2 for f in files)
+
+
+def test_delete_nonexistent_file_returns_404(client):
+    res = client.delete("/api/files/99999")
+    assert res.status_code == 404

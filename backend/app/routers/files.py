@@ -161,3 +161,12 @@ def retry_conversion(file_id: int, db: sqlite3.Connection = Depends(get_db)):
     except convert.ConversionError as exc:
         store.set_status(db, file_id, "failed", str(exc))
         return {"status": "failed", "error": str(exc)}
+
+
+@router.delete("/files/{file_id}")
+def delete_file(file_id: int, db: sqlite3.Connection = Depends(get_db)):
+    if db.execute("SELECT 1 FROM files WHERE id=?", (file_id,)).fetchone() is None:
+        raise HTTPException(404, "file not found")
+    db.execute("DELETE FROM files WHERE id=?", (file_id,))
+    db.commit()
+    return {"ok": True}
