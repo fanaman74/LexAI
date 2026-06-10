@@ -80,3 +80,19 @@ export interface ScanProgress {
   skipped: string[];
   error: string | null;
 }
+
+export interface CaseFile {
+  id: number;
+  original_name: string;
+  status: string;
+  has_markdown: boolean;
+}
+
+export interface Case {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  file_count: number;
+  files: CaseFile[];
+}
