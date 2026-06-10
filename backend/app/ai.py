@@ -5,7 +5,7 @@ import sqlite3
 import httpx
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "openai/gpt-oss-120b:free"
+MODEL = os.environ.get("CHAT_MODEL", "openai/gpt-oss-120b:free")
 MAX_DOC_CHARS = 40_000
 SYSTEM_PROMPT = (
     "You are a legal document analysis assistant for a law office. Answer "
