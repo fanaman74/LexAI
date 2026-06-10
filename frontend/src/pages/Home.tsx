@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import type { Case, IndexStatus, ScanProgress } from "../api";
 
 export default function Home() {
+  const navigate = useNavigate();
   const [scan, setScan] = useState<ScanProgress | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -112,109 +113,156 @@ export default function Home() {
     }
   }
 
-  async function startScan() {
-    setError("");
-    setScan(null);
-    try {
-      const picked = await api<{ path: string | null }>("/api/pick-folder", { method: "POST" });
-      if (!picked.path) return;
-      const { job_id } = await api<{ job_id: string }>("/api/scan", {
-        method: "POST",
-        body: JSON.stringify({ path: picked.path }),
-      });
-      startPoll(job_id);
-    } catch (err) {
-      setError((err as Error).message);
-    }
+  function startScan() {
+    navigate("/folder-upload");
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black flex flex-col items-center justify-center relative overflow-hidden">
-      {/* background glow orb */}
-      <div className="absolute w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden px-6 py-16">
+      {/* background glow */}
+      <div className="absolute w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 text-center px-6 max-w-2xl w-full">
-        <h1
-          className="text-3xl sm:text-5xl font-bold text-white mb-4 opacity-0"
+      <div className="relative z-10 w-full max-w-6xl flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+
+        {/* Left: text + CTAs */}
+        <div
+          className="flex-1 text-center lg:text-left opacity-0"
           style={{ animation: "fadeSlideUp 0.6s ease-out 0.1s forwards" }}
         >
-          Your Legal Documents,{" "}
-          <span className="text-amber-400">Intelligently Organized</span>
-        </h1>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            Your Legal Work,{" "}
+            <span className="text-amber-400">Intelligently Organised</span>
+          </h1>
 
-        <p
-          className="text-zinc-300 text-base sm:text-xl mb-10 opacity-0"
-          style={{ animation: "fadeSlideUp 0.6s ease-out 0.3s forwards" }}
-        >
-          Ingest, search, and analyze case files with AI — entirely on your machine.
-        </p>
+          <p className="text-zinc-400 text-lg sm:text-xl mb-10 max-w-lg mx-auto lg:mx-0">
+            Ingest case files, extract key facts with AI, and review everything in one place — entirely on your machine.
+          </p>
 
-        <div
-          className="flex gap-4 justify-center flex-wrap opacity-0"
-          style={{ animation: "fadeSlideUp 0.6s ease-out 0.5s forwards" }}
-        >
-          <button
-            onClick={openModal}
-            disabled={uploading}
-            className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-700 text-black rounded-xl px-6 sm:px-8 py-3.5 font-semibold text-base sm:text-lg shadow-lg transition-colors"
-          >
-            {uploading ? "Uploading…" : "Upload Files"}
-          </button>
-          <button
-            onClick={startScan}
-            className="border border-amber-500 text-amber-400 hover:bg-amber-500/10 rounded-xl px-6 sm:px-8 py-3.5 font-semibold text-base sm:text-lg transition-colors"
-          >
-            Add Folder
-          </button>
+          <div className="flex gap-4 justify-center lg:justify-start flex-wrap">
+            <button
+              onClick={openModal}
+              disabled={uploading}
+              className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-700 text-black rounded-xl px-8 py-3.5 font-semibold text-lg shadow-lg transition-colors"
+            >
+              {uploading ? "Uploading…" : "Upload Files"}
+            </button>
+            <button
+              onClick={startScan}
+              className="border border-amber-500/60 text-amber-400 hover:bg-amber-500/10 rounded-xl px-8 py-3.5 font-semibold text-lg transition-colors"
+            >
+              Add Folder
+            </button>
+          </div>
+
+          {(scan || error) && (
+            <div className="mt-6 text-sm">
+              {error && <p className="text-red-400">{error}</p>}
+              {scan && scan.status !== "done" && (
+                <p className="text-zinc-400">Converting {scan.done}/{scan.total}…</p>
+              )}
+              {scan && scan.status === "done" && (
+                <p className="text-emerald-400">Done: {scan.converted} converted · {scan.failed} failed</p>
+              )}
+            </div>
+          )}
+
+          <div className="mt-8">
+            <Link to="/library" className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors">
+              Browse Library →
+            </Link>
+          </div>
+
+          {stats && (
+            <div
+              className="mt-12 flex gap-4 justify-center lg:justify-start flex-wrap opacity-0"
+              style={{ animation: "fadeSlideUp 0.6s ease-out 0.5s forwards" }}
+            >
+              {[
+                { label: "Documents", value: stats.total },
+                { label: "Indexed", value: stats.indexed },
+                { label: "Failed", value: stats.failed },
+              ].map((s) => (
+                <div key={s.label} className="bg-zinc-950 border border-zinc-800 rounded-xl px-6 py-4 text-center min-w-[90px]">
+                  <p className="text-2xl font-bold text-white">{s.value}</p>
+                  <p className="text-xs text-zinc-500 mt-1 uppercase tracking-wide">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {(scan || error) && (
-          <div
-            className="mt-6 text-sm opacity-0"
-            style={{ animation: "fadeSlideUp 0.4s ease-out 0.1s forwards" }}
-          >
-            {error && <p className="text-red-400">{error}</p>}
-            {scan && scan.status !== "done" && (
-              <p className="text-zinc-300">Converting {scan.done}/{scan.total}…</p>
-            )}
-            {scan && scan.status === "done" && (
-              <p className="text-emerald-400">
-                Done: {scan.converted} converted · {scan.failed} failed
-              </p>
-            )}
-          </div>
-        )}
-
+        {/* Right: animated orbital circle */}
         <div
-          className="mt-8 opacity-0"
-          style={{ animation: "fadeSlideUp 0.6s ease-out 0.7s forwards" }}
+          className="shrink-0 opacity-0"
+          style={{ animation: "fadeSlideUp 0.8s ease-out 0.3s forwards" }}
         >
-          <Link to="/library" className="text-zinc-400 hover:text-white text-sm transition-colors">
-            Browse Library →
-          </Link>
+          <svg viewBox="0 0 560 560" className="w-72 h-72 sm:w-80 sm:h-80 lg:w-[420px] lg:h-[420px]" aria-hidden="true">
+            <defs>
+              {/* orbit path: full circle, starting from top */}
+              <path id="orbitPath" d="M280,120 A160,160 0 1,1 279.999,120" fill="none" />
+            </defs>
+
+            {/* outer faint guide ring */}
+            <circle cx="280" cy="280" r="200" stroke="#27272A" strokeWidth="1" fill="none" />
+
+            {/* main amber circle */}
+            <circle cx="280" cy="280" r="160" stroke="#F59E0B" strokeWidth="1" fill="none" opacity="0.55" />
+
+            {/* tick marks at N / S / E / W */}
+            <line x1="280" y1="112" x2="280" y2="128" stroke="#F59E0B" strokeWidth="2" opacity="0.9" />
+            <line x1="280" y1="432" x2="280" y2="448" stroke="#F59E0B" strokeWidth="2" opacity="0.9" />
+            <line x1="112" y1="280" x2="128" y2="280" stroke="#F59E0B" strokeWidth="2" opacity="0.9" />
+            <line x1="432" y1="280" x2="448" y2="280" stroke="#F59E0B" strokeWidth="2" opacity="0.9" />
+
+            {/* × marks at 45° diagonals on circle edge */}
+            {/* NE (393, 167) */}
+            <line x1="388" y1="162" x2="398" y2="172" stroke="#52525B" strokeWidth="1.5" />
+            <line x1="398" y1="162" x2="388" y2="172" stroke="#52525B" strokeWidth="1.5" />
+            {/* NW (167, 167) */}
+            <line x1="162" y1="162" x2="172" y2="172" stroke="#52525B" strokeWidth="1.5" />
+            <line x1="172" y1="162" x2="162" y2="172" stroke="#52525B" strokeWidth="1.5" />
+            {/* SE (393, 393) */}
+            <line x1="388" y1="388" x2="398" y2="398" stroke="#52525B" strokeWidth="1.5" />
+            <line x1="398" y1="388" x2="388" y2="398" stroke="#52525B" strokeWidth="1.5" />
+            {/* SW (167, 393) */}
+            <line x1="162" y1="388" x2="172" y2="398" stroke="#52525B" strokeWidth="1.5" />
+            <line x1="172" y1="388" x2="162" y2="398" stroke="#52525B" strokeWidth="1.5" />
+
+            {/* center label */}
+            <text x="280" y="276" textAnchor="middle" fill="#52525B" fontSize="10" letterSpacing="4" fontFamily="monospace" fontWeight="500">LEX AI</text>
+            <text x="280" y="292" textAnchor="middle" fill="#3F3F46" fontSize="9" letterSpacing="2" fontFamily="monospace">v2</text>
+
+            {/* orbiting amber dot */}
+            <circle r="7" fill="#F59E0B">
+              <animateMotion dur="12s" repeatCount="indefinite" rotate="0">
+                <mpath href="#orbitPath" />
+              </animateMotion>
+            </circle>
+            {/* dot glow */}
+            <circle r="14" fill="#F59E0B" opacity="0.15">
+              <animateMotion dur="12s" repeatCount="indefinite" rotate="0">
+                <mpath href="#orbitPath" />
+              </animateMotion>
+            </circle>
+
+            {/* phase label — INGEST (top) */}
+            <text x="280" y="58" textAnchor="middle" fill="white" fontSize="13" fontWeight="700" letterSpacing="0.5">Ingest</text>
+            <text x="280" y="74" textAnchor="middle" fill="#71717A" fontSize="10">Upload &amp; process documents</text>
+
+            {/* phase label — ANALYZE (right) */}
+            <text x="466" y="275" textAnchor="start" fill="white" fontSize="13" fontWeight="700" letterSpacing="0.5">Analyze</text>
+            <text x="466" y="291" textAnchor="start" fill="#71717A" fontSize="10">AI legal intelligence</text>
+
+            {/* phase label — REVIEW (bottom) */}
+            <text x="280" y="488" textAnchor="middle" fill="white" fontSize="13" fontWeight="700" letterSpacing="0.5">Review</text>
+            <text x="280" y="504" textAnchor="middle" fill="#71717A" fontSize="10">Work cases end-to-end</text>
+
+            {/* phase label — DISCOVER (left) */}
+            <text x="94" y="275" textAnchor="end" fill="white" fontSize="13" fontWeight="700" letterSpacing="0.5">Discover</text>
+            <text x="94" y="291" textAnchor="end" fill="#71717A" fontSize="10">Semantic search</text>
+          </svg>
         </div>
       </div>
-
-      {stats && (
-        <div
-          className="absolute bottom-8 sm:bottom-12 flex gap-3 sm:gap-6 opacity-0 px-4 flex-wrap justify-center"
-          style={{ animation: "fadeSlideUp 0.6s ease-out 0.9s forwards" }}
-        >
-          {[
-            { label: "Documents", value: stats.total },
-            { label: "Indexed Chunks", value: stats.indexed },
-            { label: "Failed", value: stats.failed },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-white/5 backdrop-blur border border-white/10 rounded-xl px-6 sm:px-8 py-4 text-center"
-            >
-              <p className="text-2xl sm:text-3xl font-bold text-white">{s.value}</p>
-              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-wide">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Upload modal */}
       {showModal && (

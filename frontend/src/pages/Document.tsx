@@ -17,7 +17,8 @@ interface Detail {
   created_at: string;
   locations: FileLocation[];
   markdown: { content_md: string; converter_used: string;
-              converted_at: string; word_count: number } | null;
+              converted_at: string; word_count: number;
+              keywords: string[]; summary: string | null } | null;
   tags: string[];
   notes: { id: number; content: string; created_at: string }[];
 }
@@ -63,6 +64,13 @@ export default function DocumentView() {
   async function retry() {
     await api(`/api/files/${doc!.id}/retry`, { method: "POST" });
     load();
+  }
+
+  async function summarise() {
+    try {
+      await api(`/api/files/${doc!.id}/summarise`, { method: "POST" });
+      load();
+    } catch (e) { setError((e as Error).message); }
   }
 
   async function reveal(index: number) {
@@ -143,6 +151,40 @@ export default function DocumentView() {
       </article>
 
       <aside className="w-80 shrink-0 space-y-4">
+
+        {/* AI Summary panel */}
+        {doc.markdown && (
+          <section className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 text-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-zinc-200">AI Summary</h3>
+              <button onClick={summarise}
+                className="text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 rounded-md px-2 py-0.5 hover:border-amber-500 transition-colors">
+                {doc.markdown.keywords?.length ? "Regenerate" : "Generate"}
+              </button>
+            </div>
+            {doc.markdown.keywords?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1.5">Keywords</p>
+                <div className="flex flex-wrap gap-1">
+                  {doc.markdown.keywords.map((kw) => (
+                    <span key={kw} className="bg-blue-500/15 text-blue-400 text-xs rounded-full px-2 py-0.5">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {doc.markdown.summary ? (
+              <div>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1.5">Summary</p>
+                <p className="text-zinc-300 text-xs leading-relaxed whitespace-pre-wrap">{doc.markdown.summary}</p>
+              </div>
+            ) : (
+              <p className="text-zinc-600 text-xs">No summary yet — click Generate to create one using AI.</p>
+            )}
+          </section>
+        )}
+
         <section className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 text-sm space-y-1">
           <h3 className="font-semibold mb-2 text-zinc-200">Metadata</h3>
           <p><span className="text-zinc-400">Type:</span> <span className="text-zinc-300">{doc.file_type}</span></p>
