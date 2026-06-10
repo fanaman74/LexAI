@@ -25,8 +25,9 @@ def create_app(db_path: str = DEFAULT_DB) -> FastAPI:
     from .routers import (analyses as analyses_router, chats as chats_router,
                           files as files_router, scan as scan_router,
                           search as search_router, semantic as semantic_router,
-                          tags as tags_router)
+                          tags as tags_router, upload as upload_router)
     app.include_router(scan_router.router)
+    app.include_router(upload_router.router)
     app.include_router(files_router.router)
     app.include_router(search_router.router)
     app.include_router(tags_router.router)
