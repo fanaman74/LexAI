@@ -1,4 +1,5 @@
 import os
+import shutil
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -36,6 +37,7 @@ class IngestJob:
             "new": 0, "existing": 0, "converted": 0, "failed": 0, "ocr": 0,
             "skipped": [], "error": None,
         }
+        self.cleanup_root: str | None = None
 
     def snapshot(self) -> dict:
         with self._lock:
@@ -64,6 +66,9 @@ class IngestJob:
             indexer.start(self.db_path)  # local embeddings need no API key
         except Exception as exc:
             self._bump(status="done", error=str(exc))
+        finally:
+            if self.cleanup_root:
+                shutil.rmtree(self.cleanup_root, ignore_errors=True)
 
     def _process_one(self, path: Path):
         conn = get_conn(self.db_path)

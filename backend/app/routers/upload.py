@@ -1,4 +1,3 @@
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -12,9 +11,15 @@ router = APIRouter(prefix="/api")
 @router.post("/upload")
 async def upload_files(files: list[UploadFile], request: Request):
     tmp_dir = tempfile.mkdtemp(prefix="lexai_upload_")
-    for file in files:
-        dest = Path(tmp_dir) / (file.filename or "upload")
-        with dest.open("wb") as f:
-            shutil.copyfileobj(file.file, f)
-    job_id = ingest.start_scan(tmp_dir, request.app.state.db_path)
-    return {"job_id": job_id}
+    for i, file in enumerate(files):
+        safe_name = Path(file.filename).name if file.filename else "upload"
+        sub = Path(tmp_dir) / f"{i:04d}"
+        sub.mkdir()
+        dest = sub / safe_name
+        dest.write_bytes(await file.read())
+    job = ingest.IngestJob(tmp_dir, request.app.state.db_path)
+    job.cleanup_root = tmp_dir
+    ingest.JOBS[job.id] = job
+    import threading
+    threading.Thread(target=job.run, daemon=True).start()
+    return {"job_id": job.id}
