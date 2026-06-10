@@ -33,6 +33,7 @@ export default function Library() {
   const [scan, setScan] = useState<ScanProgress | null>(null);
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null);
   const [error, setError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const pollRef = useRef<number | null>(null);
   const indexPollRef = useRef<number | null>(null);
   const navigate = useNavigate();
@@ -122,6 +123,15 @@ export default function Library() {
       if (!res.ok && res.error) setError(res.error);
     } catch (e) {
       setError((e as Error).message);
+    }
+  }
+
+  async function deleteFile(id: number) {
+    try {
+      await api("/api/files/" + id, { method: "DELETE" });
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+    } finally {
+      setConfirmDeleteId(null);
     }
   }
 
@@ -343,6 +353,33 @@ export default function Library() {
                         className="border border-emerald-300 text-emerald-700 rounded-md px-2 py-1 text-xs hover:bg-emerald-50">
                         💬
                       </Link>
+                      {confirmDeleteId === f.id ? (
+                        <span className="flex items-center gap-1 text-xs ml-1">
+                          <button
+                            onClick={() => deleteFile(f.id)}
+                            className="text-red-400 hover:text-red-300 font-medium"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="text-slate-500 hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(f.id)}
+                          className="text-slate-500 hover:text-red-400 transition-colors"
+                          title="Remove from index"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
