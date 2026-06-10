@@ -296,8 +296,8 @@ export default function Library() {
       )}
 
       {(mode === "keyword" || semantic === null) && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-max">
             <thead className="bg-slate-50">
               <tr className="text-left text-slate-500 border-b border-slate-200">
                 <th className="p-3 w-8"></th>

@@ -118,9 +118,9 @@ export default function CaseReview() {
   const activeDoc = activeDocId !== null ? docCache[activeDocId] : null;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex flex-col lg:flex-row min-h-screen overflow-hidden">
       {/* Left panel — document picker */}
-      <div className="w-72 shrink-0 bg-white border-r border-slate-200 flex flex-col">
+      <div className="w-full lg:w-72 shrink-0 bg-white border-r border-slate-200 flex flex-col">
         <div className="p-4 border-b border-slate-200">
           <input
             value={caseName}
@@ -228,7 +228,7 @@ export default function CaseReview() {
       </div>
 
       {/* Right panel — analysis tools */}
-      <div className="w-80 shrink-0 bg-white border-l border-slate-200 flex flex-col overflow-hidden">
+      <div className="w-full lg:w-80 shrink-0 bg-white border-l border-slate-200 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-slate-200 shrink-0">
           <h2 className="font-semibold text-slate-700 mb-3">AI Analysis</h2>
           <div className="flex flex-wrap gap-1.5 mb-3">
