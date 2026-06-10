@@ -270,3 +270,29 @@ def delete_file(file_id: int, db: sqlite3.Connection = Depends(get_db)):
     db.execute("DELETE FROM files WHERE id=?", (file_id,))
     db.commit()
     return {"ok": True}
+
+
+@router.post("/documents/{doc_id}/reprocess")
+def reprocess_document(doc_id: int, db=Depends(get_db)):
+    """Delete old chunks and re-run the full pipeline for this document."""
+    row = db.execute(
+        "SELECT id, original_filename, storage_path FROM documents WHERE id=%s",
+        (doc_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "document not found")
+    storage_path = row["storage_path"]
+    if not storage_path or not Path(storage_path).exists():
+        raise HTTPException(400, "original file not found on disk — cannot reprocess")
+    content = Path(storage_path).read_bytes()
+    db.execute("DELETE FROM document_chunks WHERE document_id=%s", (doc_id,))
+    db.execute(
+        "UPDATE documents SET processing_status='uploaded', processing_error=NULL,"
+        " extracted_text=NULL, processed_at=NULL WHERE id=%s", (doc_id,))
+    db.commit()
+    import threading
+    from ..pipeline import process_document
+    threading.Thread(
+        target=process_document,
+        args=(doc_id, row["original_filename"], content),
+        daemon=True).start()
+    return {"started": True, "document_id": doc_id}

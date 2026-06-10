@@ -172,3 +172,9 @@ def test_delete_file_removes_from_index(client):
 def test_delete_nonexistent_file_returns_404(client):
     res = client.delete("/api/files/99999")
     assert res.status_code == 404
+
+
+def test_reprocess_missing_doc(client):
+    """Should 404 for unknown document."""
+    resp = client.post("/api/documents/99999/reprocess")
+    assert resp.status_code == 404
