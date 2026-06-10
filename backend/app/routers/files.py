@@ -1,7 +1,10 @@
 import json
 import sqlite3
+import subprocess
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from pydantic import BaseModel
 
 from .. import convert, store
 from ..deps import get_db
@@ -98,16 +101,51 @@ def file_detail(file_id: int, db: sqlite3.Connection = Depends(get_db)):
     return detail
 
 
+INLINE_MIME = {
+    "pdf": "application/pdf",
+    "txt": "text/plain; charset=utf-8",
+    "csv": "text/plain; charset=utf-8",
+    "eml": "text/plain; charset=utf-8",
+}
+
+
 @router.get("/files/{file_id}/original")
-def download_original(file_id: int, db: sqlite3.Connection = Depends(get_db)):
+def download_original(file_id: int, inline: int = 0,
+                      db: sqlite3.Connection = Depends(get_db)):
     row = db.execute(
-        "SELECT original_name, content FROM files WHERE id=?", (file_id,)).fetchone()
+        "SELECT original_name, file_type, content FROM files WHERE id=?",
+        (file_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "file not found")
+    mime = INLINE_MIME.get(row["file_type"]) if inline else None
+    disposition = "inline" if inline and mime else "attachment"
     return Response(
-        content=row["content"], media_type="application/octet-stream",
+        content=row["content"],
+        media_type=mime or "application/octet-stream",
         headers={"Content-Disposition":
-                 f'attachment; filename="{row["original_name"]}"'})
+                 f'{disposition}; filename="{row["original_name"]}"'})
+
+
+class RevealBody(BaseModel):
+    location_index: int = 0
+
+
+@router.post("/files/{file_id}/reveal")
+def reveal_in_finder(file_id: int, body: RevealBody,
+                     db: sqlite3.Connection = Depends(get_db)):
+    locations = db.execute(
+        "SELECT root_folder, subfolder_path, filename FROM file_locations"
+        " WHERE file_id=? ORDER BY id", (file_id,)).fetchall()
+    if db.execute("SELECT 1 FROM files WHERE id=?", (file_id,)).fetchone() is None:
+        raise HTTPException(404, "file not found")
+    if not locations or body.location_index >= len(locations):
+        raise HTTPException(400, "no such location for this file")
+    loc = locations[body.location_index]
+    path = Path(loc["root_folder"]) / loc["subfolder_path"] / loc["filename"]
+    proc = subprocess.run(["open", "-R", str(path)], capture_output=True, timeout=15)
+    if proc.returncode != 0:
+        return {"ok": False, "error": f"could not reveal {path} (moved or deleted?)"}
+    return {"ok": True}
 
 
 @router.post("/files/{file_id}/retry")

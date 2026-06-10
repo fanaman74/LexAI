@@ -106,6 +106,47 @@ def test_detail_and_download(client):
     assert client.get("/api/files/99999").status_code == 404
 
 
+def test_reveal_in_finder(client, monkeypatch, tmp_path):
+    from app.routers import files as files_router
+    real = tmp_path / "evidence"
+    real.mkdir()
+    (real / "contract.txt").write_text("x")
+    conn = get_conn(client.app.state.db_path)
+    fid, _ = store.upsert_file(conn, "contract.txt", b"x")
+    store.add_location(conn, fid, str(tmp_path), "evidence", "contract.txt")
+    conn.close()
+
+    opened = {}
+
+    def fake_run(cmd, **kwargs):
+        opened["cmd"] = cmd
+        import subprocess
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(files_router.subprocess, "run", fake_run)
+    res = client.post(f"/api/files/{fid}/reveal", json={"location_index": 0})
+    assert res.status_code == 200 and res.json()["ok"] is True
+    assert opened["cmd"][:2] == ["open", "-R"]
+    assert opened["cmd"][2].endswith("evidence/contract.txt")
+
+    # missing path on disk -> ok:false with error
+    res2 = client.post(f"/api/files/{fid}/reveal", json={"location_index": 5})
+    assert res2.status_code == 400
+    assert client.post("/api/files/9999/reveal",
+                       json={"location_index": 0}).status_code == 404
+
+
+def test_original_inline_mime(client):
+    fid1, _ = _seed(client)
+    res = client.get(f"/api/files/{fid1}/original", params={"inline": 1})
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/plain")
+    assert res.headers["content-disposition"].startswith("inline")
+    # default stays as attachment download
+    res2 = client.get(f"/api/files/{fid1}/original")
+    assert res2.headers["content-disposition"].startswith("attachment")
+
+
 def test_retry_reconverts_failed_file(client):
     conn = get_conn(client.app.state.db_path)
     fid, _ = store.upsert_file(conn, "bad.txt", b"now fine")
