@@ -188,6 +188,23 @@ export interface CaseFile {
 
 ---
 
+## Responsive Design
+
+All new and modified pages must be fully responsive. Key breakpoints:
+
+- **Mobile (< 768px):** Sidebar collapses to a bottom tab bar or hamburger menu. Single-column layout. Upload modal takes full viewport width.
+- **Tablet (768px–1024px):** Sidebar stays visible but narrower (w-16 icon-only). Cases table scrolls horizontally if needed.
+- **Desktop (≥ 1024px):** Full sidebar (w-60), all columns visible.
+
+Existing pages (Library, CaseReview, Chat) also get mobile-safe treatment as part of this work:
+- Sidebar: add hamburger toggle on mobile, overlay drawer
+- CaseReview: stack three columns vertically on mobile
+- Library: card list instead of table on mobile
+
+Implementation: Tailwind responsive prefixes (`sm:`, `md:`, `lg:`) — no JS resize listeners.
+
+---
+
 ## Out of Scope
 
 - Renaming cases (can add later)
