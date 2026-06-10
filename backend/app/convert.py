@@ -1,6 +1,8 @@
-import email
+# backend/app/convert.py
+import email as email_lib
 import subprocess
 import tempfile
+from dataclasses import dataclass, field
 from email import policy
 from pathlib import Path
 
@@ -16,26 +18,45 @@ class ConversionError(Exception):
     pass
 
 
-def convert_to_markdown(filename: str, content: bytes) -> tuple[str, str]:
-    """Return (markdown, converter_used). Raises ConversionError on failure."""
+@dataclass
+class AttachmentData:
+    filename: str
+    content: bytes
+    mime_type: str = ""
+
+
+@dataclass
+class ConversionResult:
+    full_text: str
+    converter_used: str
+    pages: list[str] = field(default_factory=list)
+    attachments: list[AttachmentData] = field(default_factory=list)
+    email_metadata: dict = field(default_factory=dict)
+
+
+def convert_to_markdown(filename: str, content: bytes) -> ConversionResult:
+    """Extract text from file. Raises ConversionError on failure."""
     ext = Path(filename).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise ConversionError(f"unsupported file type: {ext or '(none)'}")
     try:
         if ext == ".txt":
-            return content.decode("utf-8", errors="replace"), "text"
+            text = content.decode("utf-8", errors="replace")
+            return ConversionResult(full_text=text, converter_used="text")
         if ext == ".eml":
-            return _convert_eml(content), "eml"
+            return _convert_eml(content)
         if ext == ".msg":
-            return _convert_msg(content), "msg"
+            return _convert_msg(content)
         if ext in (".doc", ".rtf"):
-            return _convert_textutil(content, ext), "textutil"
+            text = _convert_textutil(content, ext)
+            return ConversionResult(full_text=text, converter_used="textutil")
         if ext == ".pdf":
             return _convert_pdf(content)
-        return _run_markitdown(content, ext), "markitdown"
+        text = _run_markitdown(content, ext)
+        return ConversionResult(full_text=text, converter_used="markitdown")
     except ConversionError:
         raise
-    except Exception as exc:  # markitdown/library errors become ConversionError
+    except Exception as exc:
         raise ConversionError(str(exc)) from exc
 
 
@@ -47,11 +68,29 @@ def _run_markitdown(content: bytes, ext: str) -> str:
     return result.text_content
 
 
-def _convert_pdf(content: bytes) -> tuple[str, str]:
+def _convert_pdf(content: bytes) -> ConversionResult:
+    # Try pdfplumber for per-page extraction
+    try:
+        import io
+        import pdfplumber
+        pages: list[str] = []
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            for page in pdf.pages:
+                pages.append(page.extract_text() or "")
+        full = "\n\n---\n\n".join(
+            f"<!-- page {i+1} -->\n{p}" for i, p in enumerate(pages) if p.strip()
+        )
+        if len(full.strip()) >= OCR_MIN_CHARS:
+            return ConversionResult(full_text=full, converter_used="pdfplumber", pages=pages)
+    except Exception:
+        pass
+    # Fallback: markitdown
     md = _run_markitdown(content, ".pdf")
     if len(md.strip()) >= OCR_MIN_CHARS:
-        return md, "markitdown"
-    return _ocr_pdf(content), "ocr"
+        return ConversionResult(full_text=md, converter_used="markitdown")
+    # OCR fallback
+    ocr_text = _ocr_pdf(content)
+    return ConversionResult(full_text=ocr_text, converter_used="ocr")
 
 
 def _ocr_pdf(content: bytes) -> str:
@@ -71,6 +110,84 @@ def _ocr_pdf(content: bytes) -> str:
         return _run_markitdown(dst.read_bytes(), ".pdf")
 
 
+def _convert_eml(content: bytes) -> ConversionResult:
+    msg = email_lib.message_from_bytes(content, policy=policy.default)
+    meta = {
+        "sender": str(msg.get("from", "")),
+        "recipients": str(msg.get("to", "")),
+        "subject": str(msg.get("subject", "")),
+        "date": str(msg.get("date", "")),
+        "message_id": str(msg.get("message-id", "")),
+    }
+    body_parts: list[str] = []
+    attachments: list[AttachmentData] = []
+    for part in msg.walk():
+        ct = part.get_content_type()
+        cd = str(part.get("Content-Disposition", ""))
+        if "attachment" in cd:
+            fname = part.get_filename() or "attachment"
+            payload = part.get_payload(decode=True)
+            if payload:
+                attachments.append(AttachmentData(
+                    filename=fname, content=payload, mime_type=ct))
+        elif ct == "text/plain":
+            try:
+                body_parts.append(part.get_content() or "")
+            except Exception:
+                pass
+        elif ct == "text/html" and not body_parts:
+            import re
+            try:
+                html = part.get_content() or ""
+                body_parts.append(re.sub(r"<[^>]+>", " ", html))
+            except Exception:
+                pass
+
+    header = (
+        f"**From:** {meta['sender']}  \n"
+        f"**To:** {meta['recipients']}  \n"
+        f"**Subject:** {meta['subject']}  \n"
+        f"**Date:** {meta['date']}  \n\n"
+    )
+    full_text = header + "\n\n".join(body_parts)
+    return ConversionResult(
+        full_text=full_text, converter_used="eml",
+        attachments=attachments, email_metadata=meta)
+
+
+def _convert_msg(content: bytes) -> ConversionResult:
+    with tempfile.NamedTemporaryFile(suffix=".msg", delete=False) as f:
+        f.write(content)
+        tmp_path = f.name
+    try:
+        m = extract_msg.Message(tmp_path)
+        meta = {
+            "sender": m.sender or "",
+            "recipients": ", ".join(str(r) for r in (m.recipients or [])),
+            "subject": m.subject or "",
+            "date": str(m.date or ""),
+        }
+        header = (
+            f"**From:** {meta['sender']}  \n"
+            f"**To:** {meta['recipients']}  \n"
+            f"**Subject:** {meta['subject']}  \n"
+            f"**Date:** {meta['date']}  \n\n"
+        )
+        body = m.body or ""
+        attachments: list[AttachmentData] = []
+        for att in (m.attachments or []):
+            if hasattr(att, "data") and att.data:
+                fname = (getattr(att, "longFilename", None)
+                         or getattr(att, "shortFilename", None)
+                         or "attachment")
+                attachments.append(AttachmentData(filename=fname, content=att.data))
+        return ConversionResult(
+            full_text=header + body, converter_used="msg",
+            attachments=attachments, email_metadata=meta)
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+
 def _convert_textutil(content: bytes, ext: str) -> str:
     with tempfile.NamedTemporaryFile(suffix=ext, delete=True) as f:
         f.write(content)
@@ -79,33 +196,5 @@ def _convert_textutil(content: bytes, ext: str) -> str:
             ["textutil", "-convert", "txt", "-stdout", f.name],
             capture_output=True, timeout=120)
     if proc.returncode != 0:
-        raise ConversionError(f"textutil failed: {proc.stderr.decode()[:500]}")
+        raise ConversionError(f"textutil failed: {proc.stderr.decode()[:200]}")
     return proc.stdout.decode("utf-8", errors="replace")
-
-
-def _convert_eml(content: bytes) -> str:
-    msg = email.message_from_bytes(content, policy=policy.default)
-    lines = [f"# {msg.get('Subject', '(no subject)')}", "",
-             f"- **From:** {msg.get('From', '')}",
-             f"- **To:** {msg.get('To', '')}",
-             f"- **Date:** {msg.get('Date', '')}", ""]
-    body = msg.get_body(preferencelist=("plain", "html"))
-    if body is not None:
-        lines.append(body.get_content())
-    return "\n".join(lines)
-
-
-def _convert_msg(content: bytes) -> str:
-    with tempfile.NamedTemporaryFile(suffix=".msg", delete=True) as f:
-        f.write(content)
-        f.flush()
-        m = extract_msg.Message(f.name)
-        try:
-            return "\n".join([
-                f"# {m.subject or '(no subject)'}", "",
-                f"- **From:** {m.sender or ''}",
-                f"- **To:** {m.to or ''}",
-                f"- **Date:** {m.date or ''}", "",
-                m.body or ""])
-        finally:
-            m.close()

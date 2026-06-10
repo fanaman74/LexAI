@@ -14,13 +14,13 @@ def test_unsupported_raises():
 
 
 def test_txt():
-    md, used = convert.convert_to_markdown("note.txt", "héllo legal".encode())
-    assert "héllo legal" in md and used == "text"
+    result = convert.convert_to_markdown("note.txt", "héllo legal".encode())
+    assert "héllo legal" in result.full_text and result.converter_used == "text"
 
 
 def test_csv():
-    md, used = convert.convert_to_markdown("t.csv", b"name,amount\nAlpha,100\n")
-    assert "Alpha" in md and used == "markitdown"
+    result = convert.convert_to_markdown("t.csv", b"name,amount\nAlpha,100\n")
+    assert "Alpha" in result.full_text and result.converter_used == "markitdown"
 
 
 def test_docx(tmp_path):
@@ -29,8 +29,8 @@ def test_docx(tmp_path):
     d = docx.Document()
     d.add_paragraph("The defendant breached the agreement.")
     d.save(p)
-    md, used = convert.convert_to_markdown("brief.docx", p.read_bytes())
-    assert "defendant breached" in md and used == "markitdown"
+    result = convert.convert_to_markdown("brief.docx", p.read_bytes())
+    assert "defendant breached" in result.full_text and result.converter_used == "markitdown"
 
 
 def test_xlsx(tmp_path):
@@ -40,16 +40,17 @@ def test_xlsx(tmp_path):
     wb.active.append(["item", "fee"])
     wb.active.append(["filing", 350])
     wb.save(p)
-    md, used = convert.convert_to_markdown("fees.xlsx", p.read_bytes())
-    assert "filing" in md and used == "markitdown"
+    result = convert.convert_to_markdown("fees.xlsx", p.read_bytes())
+    assert "filing" in result.full_text and result.converter_used == "markitdown"
 
 
 def test_eml():
     raw = (b"From: counsel@firm.com\r\nTo: client@example.com\r\n"
            b"Subject: Settlement offer\r\nDate: Mon, 1 Jun 2026 10:00:00 +0000\r\n"
            b"Content-Type: text/plain\r\n\r\nWe propose USD 50,000.\r\n")
-    md, used = convert.convert_to_markdown("offer.eml", raw)
-    assert "Settlement offer" in md and "50,000" in md and used == "eml"
+    result = convert.convert_to_markdown("offer.eml", raw)
+    assert "Settlement offer" in result.full_text and "50,000" in result.full_text
+    assert result.converter_used == "eml"
 
 
 def test_msg(monkeypatch, tmp_path):
@@ -59,17 +60,20 @@ def test_msg(monkeypatch, tmp_path):
         subject = "Hearing date"
         date = "2026-06-01"
         body = "Hearing moved to July 3."
+        recipients = []
+        attachments = []
         def close(self):
             pass
     monkeypatch.setattr(convert.extract_msg, "Message", lambda path: FakeMsg())
-    md, used = convert.convert_to_markdown("mail.msg", b"fakebinary")
-    assert "Hearing date" in md and "July 3" in md and used == "msg"
+    result = convert.convert_to_markdown("mail.msg", b"fakebinary")
+    assert "Hearing date" in result.full_text and "July 3" in result.full_text
+    assert result.converter_used == "msg"
 
 
 def test_rtf_via_textutil():
     raw = rb"{\rtf1\ansi This clause is governed by Swiss law.}"
-    md, used = convert.convert_to_markdown("clause.rtf", raw)
-    assert "Swiss law" in md and used == "textutil"
+    result = convert.convert_to_markdown("clause.rtf", raw)
+    assert "Swiss law" in result.full_text and result.converter_used == "textutil"
 
 
 import shutil
@@ -100,8 +104,9 @@ LONG_TEXT = ("This Services Agreement is entered into between Alpha Corp and "
 def test_pdf_with_text_layer(tmp_path):
     p = tmp_path / "contract.pdf"
     _make_text_pdf(p, LONG_TEXT)
-    md, used = convert.convert_to_markdown("contract.pdf", p.read_bytes())
-    assert "Alpha Corp" in " ".join(md.split()) and used == "markitdown"
+    result = convert.convert_to_markdown("contract.pdf", p.read_bytes())
+    assert "Alpha Corp" in " ".join(result.full_text.split())
+    assert result.converter_used in ("pdfplumber", "markitdown")
 
 
 def test_pdf_without_text_triggers_ocr(tmp_path, monkeypatch):
@@ -116,8 +121,8 @@ def test_pdf_without_text_triggers_ocr(tmp_path, monkeypatch):
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     monkeypatch.setattr(convert.subprocess, "run", fake_run)
-    md, used = convert.convert_to_markdown("scan.pdf", blank.read_bytes())
-    assert "Alpha Corp" in " ".join(md.split()) and used == "ocr"
+    result = convert.convert_to_markdown("scan.pdf", blank.read_bytes())
+    assert "Alpha Corp" in " ".join(result.full_text.split()) and result.converter_used == "ocr"
 
 
 def test_ocr_failure_raises_conversion_error(tmp_path, monkeypatch):
