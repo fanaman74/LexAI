@@ -51,7 +51,7 @@ export default function Analyze() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="max-w-3xl mx-auto space-y-4 p-6">
       <div className="bg-amber-50 border border-amber-300 rounded-md p-3 text-sm text-amber-800">
         ⚠️ AI analysis sends document text to OpenRouter (free tier). Do not use for
         documents that must never leave this machine.

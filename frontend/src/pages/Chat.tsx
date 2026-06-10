@@ -84,7 +84,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex gap-4" style={{ height: "calc(100vh - 7rem)" }}>
+    <div className="max-w-6xl mx-auto flex gap-4 p-6" style={{ height: "100vh" }}>
       <aside className="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-slate-200 p-3 overflow-y-auto">
         <button onClick={newChat}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 text-sm font-medium mb-3">

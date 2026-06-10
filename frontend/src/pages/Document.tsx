@@ -79,7 +79,7 @@ export default function DocumentView() {
   const canInline = INLINE_TYPES.includes(doc.file_type);
 
   return (
-    <div className="max-w-6xl mx-auto flex gap-6">
+    <div className="max-w-6xl mx-auto flex gap-6 p-6">
       <article className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold text-slate-800">{doc.original_name}</h1>
