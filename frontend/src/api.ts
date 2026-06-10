@@ -36,6 +36,37 @@ export interface FolderEntry {
   count: number;
 }
 
+export interface SemanticResult {
+  file_id: number;
+  original_name: string;
+  file_type: string;
+  score: number;
+  snippet: string;
+}
+
+export interface ChatMsg {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface Chat {
+  id: number;
+  file_ids: number[];
+  title: string;
+  created_at: string;
+  messages?: ChatMsg[];
+}
+
+export interface IndexStatus {
+  status: string;
+  total: number;
+  indexed: number;
+  failed: number;
+  error: string | null;
+}
+
 export interface ScanProgress {
   status: string;
   root: string;
