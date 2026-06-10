@@ -8,3 +8,8 @@ python-dotenv
 sqlite-vec
 numpy
 fastembed
+psycopg[binary]
+pgvector
+tiktoken
+pdfplumber
+supabase

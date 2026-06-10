@@ -1,135 +1,51 @@
-import sqlite3
-from pathlib import Path
+import os
+from contextlib import contextmanager
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS files (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  sha256 TEXT NOT NULL UNIQUE,
-  original_name TEXT NOT NULL,
-  file_type TEXT NOT NULL,
-  size_bytes INTEGER NOT NULL,
-  content BLOB NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending','converted','failed','needs_ocr')),
-  error_message TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS file_locations (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-  root_folder TEXT NOT NULL,
-  subfolder_path TEXT NOT NULL DEFAULT '',
-  filename TEXT NOT NULL,
-  scanned_at TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE (file_id, root_folder, subfolder_path, filename)
-);
-
-CREATE TABLE IF NOT EXISTS markdown_files (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  file_id INTEGER NOT NULL UNIQUE REFERENCES files(id) ON DELETE CASCADE,
-  content_md TEXT NOT NULL,
-  converter_used TEXT NOT NULL,
-  converted_at TEXT NOT NULL DEFAULT (datetime('now')),
-  word_count INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS markdown_fts USING fts5(
-  content_md, content='markdown_files', content_rowid='id'
-);
-
-CREATE TRIGGER IF NOT EXISTS markdown_ai AFTER INSERT ON markdown_files BEGIN
-  INSERT INTO markdown_fts(rowid, content_md) VALUES (new.id, new.content_md);
-END;
-CREATE TRIGGER IF NOT EXISTS markdown_ad AFTER DELETE ON markdown_files BEGIN
-  INSERT INTO markdown_fts(markdown_fts, rowid, content_md)
-    VALUES ('delete', old.id, old.content_md);
-END;
-CREATE TRIGGER IF NOT EXISTS markdown_au AFTER UPDATE ON markdown_files BEGIN
-  INSERT INTO markdown_fts(markdown_fts, rowid, content_md)
-    VALUES ('delete', old.id, old.content_md);
-  INSERT INTO markdown_fts(rowid, content_md) VALUES (new.id, new.content_md);
-END;
-
-CREATE TABLE IF NOT EXISTS tags (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE
-);
-
-CREATE TABLE IF NOT EXISTS file_tags (
-  file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-  tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-  PRIMARY KEY (file_id, tag_id)
-);
-
-CREATE TABLE IF NOT EXISTS notes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS chunks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-  chunk_index INTEGER NOT NULL,
-  text TEXT NOT NULL,
-  embedding BLOB,
-  UNIQUE (file_id, chunk_index)
-);
-
-CREATE TABLE IF NOT EXISTS chats (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  file_ids TEXT NOT NULL,
-  title TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('user','assistant')),
-  content TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS analyses (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  file_ids TEXT NOT NULL,
-  prompt TEXT NOT NULL,
-  response TEXT NOT NULL,
-  model TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS cases (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS case_files (
-  case_id INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-  file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-  added_at TEXT NOT NULL DEFAULT (datetime('now')),
-  PRIMARY KEY (case_id, file_id)
-);
-"""
+import psycopg
+from psycopg.rows import dict_row
 
 
-def get_conn(db_path) -> sqlite3.Connection:
-    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA busy_timeout = 5000")
-    return conn
+def _dsn() -> str:
+    """Build PostgreSQL DSN from environment variables.
+
+    Uses the Supabase Session Pooler (port 5432) which supports prepared
+    statements and is compatible with psycopg. Falls back to direct host if
+    SUPABASE_DB_HOST is set explicitly.
+    """
+    password = os.environ.get("DB_PASSWORD", "")
+    project_ref = "cdztsdygywfbxlfxcipe"
+    # Session pooler: postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432
+    host = os.environ.get(
+        "SUPABASE_DB_HOST",
+        "aws-1-eu-central-1.pooler.supabase.com",
+    )
+    user = f"postgres.{project_ref}"
+    return f"postgresql://{user}:{password}@{host}:5432/postgres?sslmode=require"
 
 
-def init_db(conn: sqlite3.Connection) -> None:
-    conn.executescript(SCHEMA)
-    conn.commit()
+def get_conn() -> psycopg.Connection:
+    """Return a psycopg connection with dict_row factory."""
+    return psycopg.connect(_dsn(), row_factory=dict_row)
+
+
+@contextmanager
+def conn_ctx():
+    """Context manager that commits on success, rolls back on exception."""
+    conn = get_conn()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def run_migration(sql_path: str) -> None:
+    """Execute a .sql migration file."""
+    with open(sql_path) as f:
+        sql = f.read()
+    with conn_ctx() as conn:
+        conn.execute(sql)
+    print(f"Migration {sql_path} complete")
