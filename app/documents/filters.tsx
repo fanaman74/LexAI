@@ -6,14 +6,33 @@ type Props = {
   cases: { id: string; name: string }[];
 };
 
+const pillBase: React.CSSProperties = {
+  borderRadius: "9999px",
+  padding: "4px 12px",
+  fontSize: "12px",
+  border: "1px solid #2a2a2a",
+  color: "#9ca3af",
+  cursor: "pointer",
+  background: "transparent",
+};
+const pillActive: React.CSSProperties = {
+  ...pillBase,
+  border: "1px solid #f59e0b",
+  color: "#f59e0b",
+  backgroundColor: "rgba(245,158,11,0.1)",
+};
+
 export function Filters({ sourceTypes, cases }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
 
-  function update(key: string, value: string) {
+  function set(key: string, value: string) {
     const params = new URLSearchParams(sp.toString());
-    if (value) {
+    const current = params.get(key);
+    if (current === value) {
+      params.delete(key);
+    } else if (value) {
       params.set(key, value);
     } else {
       params.delete(key);
@@ -21,48 +40,64 @@ export function Filters({ sourceTypes, cases }: Props) {
     router.replace(pathname + "?" + params.toString());
   }
 
+  const currentType = sp.get("source_type") ?? "";
+  const currentStatus = sp.get("processing_status") ?? "";
+  const currentCase = sp.get("case_id") ?? "";
+
+  const typeLabels: Record<string, string> = {
+    pdf: "pdf", docx: "docx", doc: "doc", msg: "msg", eml: "eml",
+    xlsx: "xlsx", csv: "csv", txt: "txt", email_attachment: "attachment",
+  };
+  const statuses = ["processed", "pending", "failed", "queued", "processing"];
+
   return (
-    <div className="mt-4 flex flex-wrap gap-3 text-sm">
-      <select
-        value={sp.get("source_type") ?? ""}
-        onChange={(e) => update("source_type", e.target.value)}
-        className="rounded border px-2 py-1"
-      >
-        <option value="">All types</option>
-        {sourceTypes.map((t) => (
-          <option key={t} value={t}>{t}</option>
-        ))}
-      </select>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px" }}>
+      {cases.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "11px", color: "#9ca3af", width: "56px", flexShrink: 0 }}>CASES</span>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {cases.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => set("case_id", c.id)}
+                style={currentCase === c.id ? pillActive : pillBase}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <select
-        value={sp.get("processing_status") ?? ""}
-        onChange={(e) => update("processing_status", e.target.value)}
-        className="rounded border px-2 py-1"
-      >
-        <option value="">All statuses</option>
-        {["queued", "processing", "processed", "failed"].map((s) => (
-          <option key={s} value={s}>{s}</option>
-        ))}
-      </select>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "11px", color: "#9ca3af", width: "56px", flexShrink: 0 }}>TYPE</span>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {sourceTypes.map((t) => (
+            <button
+              key={t}
+              onClick={() => set("source_type", t)}
+              style={currentType === t ? pillActive : pillBase}
+            >
+              {typeLabels[t] ?? t}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <select
-        value={sp.get("case_id") ?? ""}
-        onChange={(e) => update("case_id", e.target.value)}
-        className="rounded border px-2 py-1"
-      >
-        <option value="">All cases</option>
-        {cases.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
-
-      <input
-        type="text"
-        placeholder="Search filename…"
-        value={sp.get("q") ?? ""}
-        onChange={(e) => update("q", e.target.value)}
-        className="rounded border px-2 py-1"
-      />
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "11px", color: "#9ca3af", width: "56px", flexShrink: 0 }}>STATUS</span>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {statuses.map((s) => (
+            <button
+              key={s}
+              onClick={() => set("processing_status", s)}
+              style={currentStatus === s ? pillActive : pillBase}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

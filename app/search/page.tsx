@@ -19,8 +19,8 @@ export default async function SearchPage({
   const initialCaseId = typeof sp.case_id === "string" ? sp.case_id : undefined;
 
   return (
-    <main className="mx-auto max-w-4xl p-8">
-      <h1 className="text-xl font-semibold mb-6">Search</h1>
+    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 24px" }}>
+      <h1 style={{ fontSize: "20px", fontWeight: 600, color: "#ffffff", marginBottom: "24px" }}>Search</h1>
       <SearchClient cases={cases ?? []} initialCaseId={initialCaseId} />
     </main>
   );

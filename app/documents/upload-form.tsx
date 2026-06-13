@@ -22,24 +22,45 @@ export function UploadForm() {
 
   return (
     <div>
-      <form onSubmit={onSubmit} className="mb-4 flex items-center gap-2">
-        <input type="file" name="files" multiple required
-          accept=".pdf,.docx,.xlsx,.msg,.eml" />
-        <button disabled={busy}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50">
-          {busy ? "Uploading…" : "Upload"}
+      <form onSubmit={onSubmit} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <input
+          type="file"
+          name="files"
+          multiple
+          required
+          accept=".pdf,.docx,.xlsx,.msg,.eml"
+          style={{ color: "#9ca3af", fontSize: "13px" }}
+        />
+        <button
+          disabled={busy}
+          style={{
+            padding: "8px 16px",
+            fontSize: "13px",
+            fontWeight: 600,
+            borderRadius: "6px",
+            backgroundColor: busy ? "#555" : "#f59e0b",
+            color: "#000",
+            border: "none",
+            cursor: busy ? "not-allowed" : "pointer",
+            opacity: busy ? 0.6 : 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {busy ? "Uploading…" : "+ Add document"}
         </button>
       </form>
-      <ul className="space-y-1 text-sm">
-        {results.map((r, i) => (
-          <li key={i} className="flex gap-2">
-            <span>{r.original_filename}</span>
-            <span className="text-gray-500">{r.status}</span>
-            {r.is_duplicate && <span className="text-amber-600">duplicate</span>}
-            {r.error && <span className="text-red-600">{r.error}</span>}
-          </li>
-        ))}
-      </ul>
+      {results.length > 0 && (
+        <ul style={{ marginTop: "10px", listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+          {results.map((r, i) => (
+            <li key={i} style={{ display: "flex", gap: "8px", fontSize: "13px" }}>
+              <span style={{ color: "#ffffff" }}>{r.original_filename}</span>
+              <span style={{ color: "#9ca3af" }}>{r.status}</span>
+              {r.is_duplicate && <span style={{ color: "#f59e0b" }}>duplicate</span>}
+              {r.error && <span style={{ color: "#ef4444" }}>{r.error}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

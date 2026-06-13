@@ -5,29 +5,45 @@ import Link from "next/link";
 import { DocumentActions } from "./actions";
 
 function StatusBadge({ status }: { status: string | null }) {
-  let cls = "rounded px-2 py-0.5 text-xs ";
-  if (status === "processed") cls += "bg-green-100 text-green-800";
-  else if (status === "failed") cls += "bg-red-100 text-red-800";
-  else if (status === "queued" || status === "processing") cls += "bg-amber-100 text-amber-800";
-  else cls += "bg-gray-100 text-gray-600";
-  return <span className={cls}>{status ?? "unknown"}</span>;
+  let style: React.CSSProperties = {
+    borderRadius: "9999px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    fontWeight: 500,
+  };
+  if (status === "processed") {
+    style = { ...style, backgroundColor: "rgba(34,197,94,0.15)", color: "#22c55e" };
+  } else if (status === "failed") {
+    style = { ...style, backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444" };
+  } else {
+    style = { ...style, backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b" };
+  }
+  return <span style={style}>{status ?? "unknown"}</span>;
 }
 
 function ChunkBadge({ status }: { status: string | null }) {
   if (!status) return null;
-  let cls = "rounded px-2 py-0.5 text-xs ";
-  if (status === "chunked") cls += "bg-blue-100 text-blue-800";
-  else if (status === "chunking") cls += "bg-amber-100 text-amber-800";
-  else if (status === "failed") cls += "bg-red-100 text-red-800";
-  else return null;
-  return <span className={cls}>{status}</span>;
+  let style: React.CSSProperties = {
+    borderRadius: "9999px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    fontWeight: 500,
+  };
+  if (status === "chunked") {
+    style = { ...style, backgroundColor: "rgba(59,130,246,0.15)", color: "#60a5fa" };
+  } else if (status === "chunking") {
+    style = { ...style, backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b" };
+  } else if (status === "failed") {
+    style = { ...style, backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444" };
+  } else return null;
+  return <span style={style}>{status}</span>;
 }
 
 function MetaField({ label, value }: { label: string; value: string | undefined | null }) {
   return (
     <div>
-      <span className="text-xs text-gray-500">{label}</span>
-      <p className="mt-0.5">{value ?? "—"}</p>
+      <span style={{ fontSize: "11px", color: "#9ca3af" }}>{label}</span>
+      <p style={{ margin: "2px 0 0", color: "#ffffff", fontSize: "13px" }}>{value ?? "—"}</p>
     </div>
   );
 }
@@ -37,6 +53,14 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
+
+const sectionStyle: React.CSSProperties = {
+  backgroundColor: "#171717",
+  border: "1px solid #2a2a2a",
+  borderRadius: "8px",
+  padding: "16px",
+  marginBottom: "16px",
+};
 
 export default async function DocumentDetailPage({
   params,
@@ -77,126 +101,152 @@ export default async function DocumentDetailPage({
   const isEmail = ["eml", "msg"].includes(doc.source_type ?? "");
 
   return (
-    <main className="mx-auto max-w-4xl p-8">
-      <div className="mb-6">
-        <Link href="/documents" className="text-sm text-gray-500 hover:underline">← Documents</Link>
+    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 24px" }}>
+      <div style={{ marginBottom: "20px" }}>
+        <Link href="/documents" style={{ fontSize: "13px", color: "#9ca3af", textDecoration: "none" }}>
+          ← Library
+        </Link>
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px" }}>
         <div>
-          <h1 className="text-xl font-semibold">{doc.display_title ?? doc.original_filename}</h1>
-          <div className="mt-1 flex gap-2">
+          <h1 style={{ fontSize: "20px", fontWeight: 600, color: "#ffffff", margin: 0 }}>
+            {doc.display_title ?? doc.original_filename}
+          </h1>
+          <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
             <StatusBadge status={doc.processing_status} />
             {doc.chunking_status && <ChunkBadge status={doc.chunking_status} />}
           </div>
         </div>
-        <DocumentActions
-          documentId={id}
-          hasMarkdown={!!doc.markdown_storage_path}
-        />
+        <DocumentActions documentId={id} hasMarkdown={!!doc.markdown_storage_path} />
       </div>
 
-      {/* Metadata grid */}
-      <section className="mb-6 rounded border p-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+      {/* Metadata */}
+      <div style={{ ...sectionStyle, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
         <MetaField label="Source type" value={doc.source_type} />
         <MetaField label="Document date" value={doc.document_date ?? "—"} />
         <MetaField label="Created" value={new Date(doc.created_at).toLocaleDateString()} />
         <MetaField label="File size" value={doc.file_size_bytes ? formatBytes(doc.file_size_bytes) : "—"} />
         <MetaField label="SHA256" value={doc.sha256_hash ? doc.sha256_hash.slice(0, 16) + "…" : "—"} />
         {doc.processing_error && (
-          <div className="col-span-full">
-            <span className="text-xs text-gray-500">Error</span>
-            <p className="text-red-600 text-sm mt-1">{doc.processing_error}</p>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span style={{ fontSize: "11px", color: "#9ca3af" }}>Error</span>
+            <p style={{ color: "#ef4444", fontSize: "13px", marginTop: "2px" }}>{doc.processing_error}</p>
           </div>
         )}
-      </section>
+      </div>
 
-      {/* Email block */}
+      {/* Email */}
       {isEmail && (
-        <section className="mb-6 rounded border p-4 text-sm">
-          <h2 className="font-medium mb-2">Email</h2>
+        <div style={{ ...sectionStyle, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", margin: 0, gridColumn: "1 / -1" }}>Email details</h2>
           <MetaField label="From" value={doc.sender ?? "—"} />
           <MetaField label="To" value={doc.recipients ? JSON.stringify(doc.recipients) : "—"} />
           <MetaField label="Subject" value={doc.email_subject ?? "—"} />
           <MetaField label="Date" value={doc.document_datetime ?? "—"} />
-        </section>
+        </div>
       )}
 
-      {/* AI block */}
-      <section className="mb-6 rounded border p-4 text-sm">
-        <h2 className="font-medium mb-2">AI Analysis</h2>
+      {/* AI */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", margin: "0 0 10px" }}>AI Analysis</h2>
         {doc.ai_short_summary ? (
-          <p className="mb-2">{doc.ai_short_summary}</p>
+          <p style={{ fontSize: "13px", color: "#ffffff", margin: "0 0 10px" }}>{doc.ai_short_summary}</p>
         ) : (
-          <p className="text-gray-400 italic mb-2">Not analysed yet</p>
+          <p style={{ fontSize: "13px", color: "#6b7280", fontStyle: "italic", margin: "0 0 10px" }}>Not analysed yet</p>
         )}
-        <div className="flex flex-wrap gap-1 mb-3">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
           {(doc.ai_keywords ?? []).map((kw: string) => (
-            <span key={kw} className="rounded bg-gray-100 px-2 py-0.5 text-xs">{kw}</span>
+            <span
+              key={kw}
+              style={{
+                borderRadius: "9999px",
+                padding: "2px 8px",
+                fontSize: "11px",
+                backgroundColor: "rgba(245,158,11,0.1)",
+                color: "#f59e0b",
+                border: "1px solid rgba(245,158,11,0.2)",
+              }}
+            >
+              {kw}
+            </span>
           ))}
         </div>
-        <button disabled className="rounded border px-3 py-1 text-xs text-gray-400 cursor-not-allowed">
-          Ask AI (Phase 5)
-        </button>
-      </section>
+      </div>
 
       {/* Lineage */}
       {(parentDoc || (children && children.length > 0)) && (
-        <section className="mb-6 rounded border p-4 text-sm">
-          <h2 className="font-medium mb-2">Document lineage</h2>
+        <div style={sectionStyle}>
+          <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", margin: "0 0 10px" }}>Document lineage</h2>
           {parentDoc && (
-            <p className="mb-1">Parent: <Link href={`/documents/${parentDoc.id}`} className="text-blue-600 hover:underline">{parentDoc.original_filename}</Link></p>
+            <p style={{ fontSize: "13px", marginBottom: "8px", color: "#9ca3af" }}>
+              Parent:{" "}
+              <Link href={`/documents/${parentDoc.id}`} style={{ color: "#f59e0b", textDecoration: "none" }}>
+                {parentDoc.original_filename}
+              </Link>
+            </p>
           )}
           {children && children.length > 0 && (
             <div>
-              <p className="text-gray-500 mb-1">Attachments ({children.length}):</p>
-              <ul className="space-y-0.5">
+              <p style={{ color: "#9ca3af", fontSize: "12px", marginBottom: "6px" }}>
+                Attachments ({children.length}):
+              </p>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
                 {children.map((c: { id: string; original_filename: string; source_type: string | null; processing_status: string | null }) => (
-                  <li key={c.id}>
-                    <Link href={`/documents/${c.id}`} className="text-blue-600 hover:underline">{c.original_filename}</Link>
-                    {" "}<span className="text-gray-400 text-xs">{c.source_type} · {c.processing_status}</span>
+                  <li key={c.id} style={{ fontSize: "13px" }}>
+                    <Link href={`/documents/${c.id}`} style={{ color: "#f59e0b", textDecoration: "none" }}>
+                      {c.original_filename}
+                    </Link>
+                    {" "}
+                    <span style={{ color: "#9ca3af", fontSize: "11px" }}>{c.source_type} · {c.processing_status}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-        </section>
+        </div>
       )}
 
-      {/* Markdown preview */}
+      {/* Markdown */}
       {doc.markdown_text && (
-        <section className="mb-6 rounded border p-4">
-          <h2 className="font-medium mb-2 text-sm">Markdown preview</h2>
-          <pre className="whitespace-pre-wrap text-xs text-gray-700 max-h-96 overflow-y-auto">{doc.markdown_text}</pre>
-        </section>
+        <div style={sectionStyle}>
+          <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", margin: "0 0 10px" }}>Markdown preview</h2>
+          <pre style={{ whiteSpace: "pre-wrap", fontSize: "12px", color: "#9ca3af", maxHeight: "384px", overflowY: "auto", margin: 0 }}>
+            {doc.markdown_text}
+          </pre>
+        </div>
       )}
 
       {/* Chunks */}
       {chunks && chunks.length > 0 && (
-        <section className="mb-6 rounded border p-4">
-          <h2 className="font-medium mb-2 text-sm">Chunks ({chunks.length}{chunks.length === 200 ? "+" : ""})</h2>
-          <table className="w-full text-xs">
+        <div style={sectionStyle}>
+          <h2 style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", margin: "0 0 10px" }}>
+            Chunks ({chunks.length}{chunks.length === 200 ? "+" : ""})
+          </h2>
+          <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="text-left text-gray-500">
-                <th className="pb-1">#</th>
-                <th className="pb-1">Chunk ID</th>
-                <th className="pb-1">Section</th>
-                <th className="pb-1">Chars</th>
+              <tr style={{ color: "#9ca3af", textAlign: "left", borderBottom: "1px solid #2a2a2a" }}>
+                <th style={{ paddingBottom: "6px" }}>#</th>
+                <th style={{ paddingBottom: "6px" }}>Chunk ID</th>
+                <th style={{ paddingBottom: "6px" }}>Section</th>
+                <th style={{ paddingBottom: "6px" }}>Chars</th>
               </tr>
             </thead>
             <tbody>
               {chunks.map((c: { chunk_id: string | null; chunk_index: number | null; section_title: string | null; char_count: number | null }) => (
-                <tr key={c.chunk_id} className="border-t">
-                  <td className="py-0.5 pr-2">{c.chunk_index}</td>
-                  <td className="py-0.5 pr-2 font-mono">{c.chunk_id ? c.chunk_id.slice(0, 30) + "…" : "—"}</td>
-                  <td className="py-0.5 pr-2">{c.section_title ?? "—"}</td>
-                  <td className="py-0.5">{c.char_count}</td>
+                <tr key={c.chunk_id} style={{ borderBottom: "1px solid #2a2a2a" }}>
+                  <td style={{ padding: "4px 8px 4px 0", color: "#9ca3af" }}>{c.chunk_index}</td>
+                  <td style={{ padding: "4px 8px 4px 0", fontFamily: "monospace", color: "#9ca3af" }}>
+                    {c.chunk_id ? c.chunk_id.slice(0, 30) + "…" : "—"}
+                  </td>
+                  <td style={{ padding: "4px 8px 4px 0", color: "#ffffff" }}>{c.section_title ?? "—"}</td>
+                  <td style={{ color: "#9ca3af" }}>{c.char_count}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </section>
+        </div>
       )}
     </main>
   );
