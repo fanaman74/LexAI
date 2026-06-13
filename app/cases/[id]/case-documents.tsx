@@ -123,6 +123,30 @@ export function CaseDocuments({ caseData, documents, availableDocs }: CaseDocume
     }
   }
 
+  async function handleExport() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/cases/${caseData.id}/export`);
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error ?? "Export failed");
+        return;
+      }
+      const manifest = await res.json();
+      const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `case-bundle-${caseData.name.replace(/[^a-z0-9]/gi, "-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleAddDoc(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedDocId) return;
@@ -158,6 +182,13 @@ export function CaseDocuments({ caseData, documents, availableDocs }: CaseDocume
           className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
         >
           {caseData.status === "active" ? "Archive case" : "Unarchive case"}
+        </button>
+        <button
+          onClick={handleExport}
+          disabled={loading}
+          className="rounded border border-blue-300 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+        >
+          Export bundle
         </button>
         <button
           onClick={handleDelete}
