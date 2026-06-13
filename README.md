@@ -13,7 +13,7 @@ This repository is being built incrementally in 6 phases. See:
 
 ## Status
 
-**Phases 1–5 — complete.**
+**All 6 phases complete.**
 
 | Phase | Summary |
 |-------|---------|
@@ -22,8 +22,7 @@ This repository is being built incrementally in 6 phases. See:
 | 3 Chunking & Embeddings | Ordered chunking, bge-base-en-v1.5 768d embeddings via FastAPI embed server (port 8765), pgvector storage |
 | 4 Search UI | Keyword (`/api/search/keyword`), semantic (`/api/search/semantic`), hybrid (`/api/search/hybrid`) endpoints; full search UI at `/search` |
 | 5 AI Assistant | Document summary, ask-document, and ask-case AI endpoints powered by Claude via Anthropic API |
-
-Phase 6 (audit/export) is not yet implemented.
+| 6 RLS & Export | Row-Level Security enforced on all 7 user-owned tables; full audit log; case bundle export (ZIP of documents + metadata JSON) |
 
 ### Pages
 
@@ -51,6 +50,7 @@ Phase 6 (audit/export) is not yet implemented.
 - `POST /api/ai/document-summary` — generate AI summary of a document (requires `ANTHROPIC_API_KEY`)
 - `POST /api/ai/ask-document` — ask a question about a specific document (requires `ANTHROPIC_API_KEY`)
 - `POST /api/ai/ask-case` — ask a question across all documents in a case (requires `ANTHROPIC_API_KEY`)
+- `GET /api/cases/[id]/export` — download case bundle as a ZIP (signed document URLs + metadata JSON)
 
 ## Stack
 
