@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const date_to = searchParams.get("date_to");
   const q = searchParams.get("q");
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 200);
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0", 10) || 0);
 
   let documentIds: string[] | null = null;
   if (case_id) {

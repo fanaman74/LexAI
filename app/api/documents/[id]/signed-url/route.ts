@@ -29,6 +29,7 @@ export async function GET(
   }
 
   const path = kind === "markdown" ? doc.markdown_storage_path : doc.storage_path;
+  if (!path) return NextResponse.json({ error: "File not available" }, { status: 404 });
   const url = await signedUrl(supabase, path, 300);
 
   await logAudit(supabase, user.id, "download", {

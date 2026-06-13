@@ -24,7 +24,8 @@ export async function GET(
   const { data: children } = await supabase
     .from("documents")
     .select("id, original_filename, source_type, processing_status")
-    .eq("parent_document_id", id);
+    .eq("parent_document_id", id)
+    .eq("user_id", user.id);
 
   let parent = null;
   if (document.parent_document_id) {
@@ -32,6 +33,7 @@ export async function GET(
       .from("documents")
       .select("id, original_filename")
       .eq("id", document.parent_document_id)
+      .eq("user_id", user.id)
       .single();
     parent = parentDoc ?? null;
   }
