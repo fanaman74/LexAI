@@ -13,6 +13,15 @@ export async function DELETE(
   const { id, documentId } = await params;
   const supabase = await createClient();
 
+  const { data: existing } = await supabase
+    .from("case_documents")
+    .select("case_id")
+    .eq("case_id", id)
+    .eq("document_id", documentId)
+    .eq("user_id", user.id)
+    .single();
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const { error } = await supabase
     .from("case_documents")
     .delete()
