@@ -13,13 +13,40 @@ This repository is being built incrementally in 6 phases. See:
 
 ## Status
 
-**Phase 1 (Foundation) — complete.** Next.js app, Supabase auth, full database schema
-(7 tables, RLS, `match_document_chunks`, keyword `search_vector`) with `embedding vector(768)`,
-private `legal-documents` storage bucket, and an upload flow (SHA256 hashing, duplicate
-detection, queued document records).
+**Phases 1–4 — complete.**
 
-Phases 2–6 (Python extraction worker, chunking/embeddings, rich UI, AI assistant,
-audit/export) are not yet implemented.
+| Phase | Summary |
+|-------|---------|
+| 1 Foundation | Next.js app, Supabase auth, full DB schema (7 tables, RLS, pgvector), storage bucket, upload flow with SHA256 dedup |
+| 2 Worker | Python/Celery extraction worker: PDF/DOCX/XLSX/MSG/EML → Markdown, attachment unpacking, status tracking |
+| 3 Chunking & Embeddings | Ordered chunking, bge-base-en-v1.5 768d embeddings via FastAPI embed server (port 8765), pgvector storage |
+| 4 Search UI | Keyword (`/api/search/keyword`), semantic (`/api/search/semantic`), hybrid (`/api/search/hybrid`) endpoints; full search UI at `/search` |
+
+Phases 5–6 (AI assistant, audit/export) are not yet implemented.
+
+### Pages
+
+- `/dashboard` — stats overview
+- `/documents` — document list, upload
+- `/documents/[id]` — document detail, chunks, signed URL
+- `/search` — keyword / semantic / hybrid search
+- `/cases` — case list, create case
+- `/cases/[id]` — case detail, linked documents
+
+### Key API endpoints
+
+- `GET/POST /api/documents` — list documents, (upload handled by `/api/documents/upload`)
+- `GET/PATCH/DELETE /api/documents/[id]` — document CRUD
+- `GET /api/documents/[id]/chunks` — document chunks
+- `GET /api/documents/[id]/signed-url` — generate signed download URL
+- `POST /api/documents/[id]/reprocess` — re-queue extraction
+- `GET /api/documents/[id]/reconstruct` — reconstruct original from chunks
+- `POST /api/search/keyword` — full-text search via `search_vector`
+- `POST /api/search/semantic` — vector similarity search via pgvector
+- `POST /api/search/hybrid` — combined keyword + semantic (RRF fusion)
+- `GET/POST /api/cases` — list / create cases
+- `GET/PATCH/DELETE /api/cases/[id]` — case CRUD
+- `GET/POST /api/cases/[id]/documents` — list / link documents to a case
 
 ## Stack
 
