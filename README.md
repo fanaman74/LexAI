@@ -13,7 +13,7 @@ This repository is being built incrementally in 6 phases. See:
 
 ## Status
 
-**Phases 1–4 — complete.**
+**Phases 1–5 — complete.**
 
 | Phase | Summary |
 |-------|---------|
@@ -21,8 +21,9 @@ This repository is being built incrementally in 6 phases. See:
 | 2 Worker | Python/Celery extraction worker: PDF/DOCX/XLSX/MSG/EML → Markdown, attachment unpacking, status tracking |
 | 3 Chunking & Embeddings | Ordered chunking, bge-base-en-v1.5 768d embeddings via FastAPI embed server (port 8765), pgvector storage |
 | 4 Search UI | Keyword (`/api/search/keyword`), semantic (`/api/search/semantic`), hybrid (`/api/search/hybrid`) endpoints; full search UI at `/search` |
+| 5 AI Assistant | Document summary, ask-document, and ask-case AI endpoints powered by Claude via Anthropic API |
 
-Phases 5–6 (AI assistant, audit/export) are not yet implemented.
+Phase 6 (audit/export) is not yet implemented.
 
 ### Pages
 
@@ -47,13 +48,16 @@ Phases 5–6 (AI assistant, audit/export) are not yet implemented.
 - `GET/POST /api/cases` — list / create cases
 - `GET/PATCH/DELETE /api/cases/[id]` — case CRUD
 - `GET/POST /api/cases/[id]/documents` — list / link documents to a case
+- `POST /api/ai/document-summary` — generate AI summary of a document (requires `ANTHROPIC_API_KEY`)
+- `POST /api/ai/ask-document` — ask a question about a specific document (requires `ANTHROPIC_API_KEY`)
+- `POST /api/ai/ask-case` — ask a question across all documents in a case (requires `ANTHROPIC_API_KEY`)
 
 ## Stack
 
 - Next.js 16 (App Router) · TypeScript · Tailwind CSS
 - Supabase (Postgres 17 + pgvector + Auth + Storage), project ref `cdztsdygywfbxlfxcipe`
 - Embeddings (Phase 3): local sentence-transformer **bge-base / e5-base, 768d**
-- AI (Phase 5): OpenRouter, `openai/gpt-oss-120b:free` (OpenAI-compatible)
+- AI (Phase 5): Anthropic Claude via `@anthropic-ai/sdk` — set `ANTHROPIC_API_KEY` in `.env.local`
 - Background worker (Phase 2): Python + Celery + Redis
 
 ## Getting started
