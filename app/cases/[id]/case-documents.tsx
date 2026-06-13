@@ -40,6 +40,34 @@ export function CaseDocuments({ caseData, documents, availableDocs }: CaseDocume
   const [error, setError] = useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = useState(availableDocs[0]?.id ?? "");
 
+  // AI state
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  async function handleAskCase(e: React.FormEvent) {
+    e.preventDefault();
+    if (!aiQuestion.trim()) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiAnswer(null);
+    try {
+      const res = await fetch("/api/ai/ask-case", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_id: caseData.id, question: aiQuestion }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "AI question failed");
+      setAiAnswer(data.answer ?? "No answer returned");
+    } catch (err: unknown) {
+      setAiError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   async function handleArchiveToggle() {
     setLoading(true);
     setError(null);
@@ -180,6 +208,36 @@ export function CaseDocuments({ caseData, documents, availableDocs }: CaseDocume
           </tbody>
         </table>
       )}
+
+      {/* Ask AI about this case */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">Ask AI about this case</h2>
+        <form onSubmit={handleAskCase} className="flex gap-2 items-start">
+          <input
+            type="text"
+            className="flex-1 rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            placeholder="Ask a question about the documents in this case…"
+            value={aiQuestion}
+            onChange={(e) => setAiQuestion(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={aiLoading || !aiQuestion.trim()}
+            className="rounded bg-blue-600 px-4 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {aiLoading ? "Asking…" : "Ask AI"}
+          </button>
+        </form>
+        {aiError && <p className="mt-2 text-sm text-red-600">{aiError}</p>}
+        {aiAnswer !== null && (
+          <details open className="mt-3">
+            <summary className="cursor-pointer text-sm font-medium text-blue-700">AI Answer</summary>
+            <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-700 max-h-96 overflow-y-auto rounded border p-3 bg-blue-50">
+              {aiAnswer}
+            </pre>
+          </details>
+        )}
+      </div>
 
       {/* Assign document */}
       {availableDocs.length > 0 && (

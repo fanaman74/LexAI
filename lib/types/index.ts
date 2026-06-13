@@ -39,4 +39,5 @@ export type AuditAction =
   | "run_ai_summary" | "delete_document" | "reprocess_document"
   | "assign_to_case" | "remove_from_case" | "export_case_bundle"
   | "delete" | "download" | "reconstruct" | "reprocess" | "search"
-  | "case_create" | "case_delete" | "case_assign" | "case_unassign";
+  | "case_create" | "case_delete" | "case_assign" | "case_unassign"
+  | "ai_summary" | "ai_ask";
