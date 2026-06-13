@@ -76,20 +76,25 @@ export async function POST(req: NextRequest) {
     .map((c) => `[Chunk ${c.chunk_index}] ${c.content}`)
     .join("\n\n");
 
-  const anthropic = getAnthropic();
+  const client = getAnthropic();
   let answer: string;
   try {
-    const msg = await anthropic.messages.create({
+    const msg = await client.chat.completions.create({
       model: AI_MODEL,
       max_tokens: 2048,
-      system:
-        "You are a legal document analyst. Answer questions based ONLY on the provided document chunks. Always cite the specific chunks you used in your answer using [Chunk N] notation. If the answer cannot be found in the provided chunks, say so explicitly.",
-      messages: [{
-        role: "user",
-        content: `Document: ${doc.original_filename} (${doc.source_type})\n\nContext chunks:\n${contextString}\n\nQuestion: ${question}`,
-      }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a legal document analyst. Answer questions based ONLY on the provided document chunks. Always cite the specific chunks you used in your answer using [Chunk N] notation. If the answer cannot be found in the provided chunks, say so explicitly.",
+        },
+        {
+          role: "user",
+          content: `Document: ${doc.original_filename} (${doc.source_type})\n\nContext chunks:\n${contextString}\n\nQuestion: ${question}`,
+        },
+      ],
     });
-    answer = msg.content[0].type === "text" ? msg.content[0].text : "";
+    answer = msg.choices[0]?.message?.content ?? "";
   } catch (err) {
     console.error("AI ask-document error", err);
     return NextResponse.json({ error: "AI processing failed" }, { status: 500 });

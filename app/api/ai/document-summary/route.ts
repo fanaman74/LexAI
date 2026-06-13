@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
 
   let parsed: { ai_short_summary?: string; ai_long_summary?: string; ai_keywords?: string[] };
   try {
-    const anthropic = getAnthropic();
-    const msg = await anthropic.messages.create({
+    const client = getAnthropic();
+    const msg = await client.chat.completions.create({
       model: AI_MODEL,
       max_tokens: 1024,
       messages: [{
@@ -57,7 +57,7 @@ Respond ONLY with valid JSON in this exact format:
       }],
     });
 
-    const rawText = msg.content[0].type === "text" ? msg.content[0].text : "{}";
+    const rawText = msg.choices[0]?.message?.content ?? "{}";
     // Strip markdown code fences if present
     const cleaned = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
     parsed = JSON.parse(cleaned);

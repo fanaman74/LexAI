@@ -1,14 +1,21 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-let _client: Anthropic | null = null;
+let _client: OpenAI | null = null;
 
-export function getAnthropic(): Anthropic {
+export function getAnthropic(): OpenAI {
   if (!_client) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
-    _client = new Anthropic({ apiKey });
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+    _client = new OpenAI({
+      apiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": process.env.APP_BASE_URL ?? "http://localhost:3000",
+        "X-Title": "LexAI",
+      },
+    });
   }
   return _client;
 }
 
-export const AI_MODEL = "claude-haiku-4-5-20251001";
+export const AI_MODEL = "deepseek/deepseek-v4-flash";

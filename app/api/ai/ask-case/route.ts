@@ -101,20 +101,25 @@ export async function POST(req: NextRequest) {
     .map((c) => `[${docMap[c.document_id] ?? c.document_id}, Chunk ${c.chunk_index}] ${c.content}`)
     .join("\n\n");
 
-  const anthropic = getAnthropic();
+  const client = getAnthropic();
   let answer: string;
   try {
-    const msg = await anthropic.messages.create({
+    const msg = await client.chat.completions.create({
       model: AI_MODEL,
       max_tokens: 2048,
-      system:
-        "You are a legal analyst working on a case. Answer questions based ONLY on the provided document chunks. Always cite sources using [Document Name, Chunk N] notation at the end of your answer. List all sources used.",
-      messages: [{
-        role: "user",
-        content: `Case: ${caseData.name}\n\nContext from case documents:\n${contextString}\n\nQuestion: ${question}`,
-      }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a legal analyst working on a case. Answer questions based ONLY on the provided document chunks. Always cite sources using [Document Name, Chunk N] notation at the end of your answer. List all sources used.",
+        },
+        {
+          role: "user",
+          content: `Case: ${caseData.name}\n\nContext from case documents:\n${contextString}\n\nQuestion: ${question}`,
+        },
+      ],
     });
-    answer = msg.content[0].type === "text" ? msg.content[0].text : "";
+    answer = msg.choices[0]?.message?.content ?? "";
   } catch (err) {
     console.error("AI ask-case error", err);
     return NextResponse.json({ error: "AI processing failed" }, { status: 500 });
