@@ -37,4 +37,5 @@ export type AuditAction =
   | "upload_document" | "view_document" | "download_original"
   | "run_keyword_search" | "run_semantic_search" | "run_hybrid_search"
   | "run_ai_summary" | "delete_document" | "reprocess_document"
-  | "assign_to_case" | "remove_from_case" | "export_case_bundle";
+  | "assign_to_case" | "remove_from_case" | "export_case_bundle"
+  | "delete" | "download" | "reconstruct" | "reprocess" | "search";
