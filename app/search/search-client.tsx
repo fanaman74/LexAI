@@ -42,7 +42,15 @@ function ViewOriginalButton({ documentId }: { documentId: string }) {
     <button
       onClick={handleClick}
       disabled={loading}
-      className="rounded border px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+      style={{
+        borderRadius: "4px",
+        border: "1px solid #2a2a2a",
+        padding: "4px 12px",
+        fontSize: "12px",
+        color: "#9ca3af",
+        background: "transparent",
+        cursor: "pointer",
+      }}
     >
       {loading ? "Loading…" : "View original"}
     </button>
@@ -97,6 +105,26 @@ export function SearchClient({
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    background: "#171717",
+    border: "1px solid #2a2a2a",
+    borderRadius: "6px",
+    padding: "8px 12px",
+    color: "#ffffff",
+    fontSize: "13px",
+    outline: "none",
+  };
+
+  const selectStyle: React.CSSProperties = {
+    background: "#171717",
+    border: "1px solid #2a2a2a",
+    borderRadius: "6px",
+    padding: "6px 10px",
+    color: "#9ca3af",
+    fontSize: "13px",
+    outline: "none",
+  };
+
   return (
     <div>
       <form onSubmit={handleSearch}>
@@ -105,19 +133,26 @@ export function SearchClient({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search documents..."
-          className="w-full rounded border px-3 py-2 text-sm mb-3"
+          style={{ ...inputStyle, width: "100%", marginBottom: "12px", boxSizing: "border-box" }}
         />
 
         {/* Mode selector */}
-        <div className="flex gap-1 mb-3">
+        <div style={{ display: "flex", gap: "4px", marginBottom: "12px" }}>
           {(["hybrid", "keyword", "semantic"] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className={`rounded px-3 py-1 text-sm border ${
-                mode === m ? "bg-gray-900 text-white" : "hover:bg-gray-50"
-              }`}
+              style={{
+                borderRadius: "6px",
+                padding: "6px 14px",
+                fontSize: "13px",
+                border: mode === m ? "1px solid #f59e0b" : "1px solid #2a2a2a",
+                background: mode === m ? "rgba(245,158,11,0.1)" : "transparent",
+                color: mode === m ? "#f59e0b" : "#9ca3af",
+                cursor: "pointer",
+                fontWeight: mode === m ? 600 : 400,
+              }}
             >
               {m.charAt(0).toUpperCase() + m.slice(1)}
             </button>
@@ -125,11 +160,11 @@ export function SearchClient({
         </div>
 
         {/* Filters row */}
-        <div className="flex gap-3 mb-3 text-sm">
+        <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
           <select
             value={caseId ?? ""}
             onChange={(e) => setCaseId(e.target.value || undefined)}
-            className="rounded border px-2 py-1"
+            style={selectStyle}
           >
             <option value="">All cases</option>
             {cases.map((c) => (
@@ -142,16 +177,14 @@ export function SearchClient({
             <select
               value={sourceType ?? ""}
               onChange={(e) => setSourceType(e.target.value || undefined)}
-              className="rounded border px-2 py-1"
+              style={selectStyle}
             >
               <option value="">All types</option>
-              {["pdf", "docx", "xlsx", "eml", "msg", "email_attachment"].map(
-                (t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                )
-              )}
+              {["pdf", "docx", "xlsx", "eml", "msg", "email_attachment"].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </select>
           )}
         </div>
@@ -159,86 +192,129 @@ export function SearchClient({
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-50"
+          style={{
+            background: "#f59e0b",
+            color: "#000",
+            fontWeight: 600,
+            padding: "8px 20px",
+            borderRadius: "6px",
+            border: "none",
+            fontSize: "13px",
+            cursor: "pointer",
+            opacity: loading ? 0.6 : 1,
+          }}
         >
           {loading ? "Searching…" : "Search"}
         </button>
       </form>
 
-      {error && <p className="mt-4 text-red-600 text-sm">{error}</p>}
-      {loading && <p className="mt-4 text-sm text-gray-500">Searching…</p>}
+      {error && (
+        <p style={{ marginTop: "16px", color: "#ef4444", fontSize: "13px" }}>{error}</p>
+      )}
+      {loading && (
+        <p style={{ marginTop: "16px", fontSize: "13px", color: "#9ca3af" }}>Searching…</p>
+      )}
       {results.length === 0 && !loading && !error && responseMode !== null && (
-        <p className="mt-4 text-sm text-gray-500">No results found.</p>
+        <p style={{ marginTop: "16px", fontSize: "13px", color: "#9ca3af" }}>No results found.</p>
       )}
       {responseMode && responseMode !== mode && (
-        <p className="mt-2 text-xs text-amber-600">
+        <p style={{ marginTop: "8px", fontSize: "12px", color: "#f59e0b" }}>
           Ran as {responseMode} (embed server may be down)
         </p>
       )}
 
-      <div className="mt-6 space-y-4">
+      <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
         {results.map((r) => (
-          <div key={r.document_id} className="rounded border p-4">
-            <div className="flex items-start justify-between">
+          <div
+            key={r.document_id}
+            style={{
+              background: "#171717",
+              border: "1px solid #2a2a2a",
+              borderRadius: "8px",
+              padding: "16px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
                 <a
                   href={`/documents/${r.document_id}`}
-                  className="font-medium text-blue-600 hover:underline"
+                  style={{ fontWeight: 500, color: "#f59e0b", textDecoration: "none", fontSize: "14px" }}
                 >
                   {r.display_title ?? r.original_filename}
                 </a>
-                <span className="ml-2 text-xs text-gray-400">
+                <span style={{ marginLeft: "8px", fontSize: "11px", color: "#9ca3af" }}>
                   {r.source_type}
                 </span>
                 {r.document_date && (
-                  <span className="ml-2 text-xs text-gray-400">
+                  <span style={{ marginLeft: "8px", fontSize: "11px", color: "#9ca3af" }}>
                     {r.document_date}
                   </span>
                 )}
               </div>
-              <span className="text-sm font-mono text-gray-600">
+              <span style={{ fontSize: "12px", fontFamily: "monospace", color: "#9ca3af" }}>
                 {(r.best_score * 100).toFixed(1)}%
               </span>
             </div>
 
             {r.ai_short_summary && (
-              <p className="mt-1 text-sm text-gray-600">{r.ai_short_summary}</p>
+              <p style={{ marginTop: "6px", fontSize: "13px", color: "#9ca3af" }}>{r.ai_short_summary}</p>
             )}
 
             {r.snippet && (
               <p
-                className="mt-2 text-sm text-gray-700 bg-yellow-50 rounded px-2 py-1"
+                style={{
+                  marginTop: "8px",
+                  fontSize: "13px",
+                  color: "#d1d5db",
+                  background: "rgba(245,158,11,0.08)",
+                  borderRadius: "4px",
+                  padding: "6px 8px",
+                }}
                 dangerouslySetInnerHTML={{ __html: sanitizeSnippet(r.snippet) }}
               />
             )}
 
-            {/* Matched chunks for semantic/hybrid */}
             {r.matched_chunks && r.matched_chunks.length > 0 && (
-              <details className="mt-2">
-                <summary className="text-xs text-gray-400 cursor-pointer">
+              <details style={{ marginTop: "8px" }}>
+                <summary style={{ fontSize: "12px", color: "#9ca3af", cursor: "pointer" }}>
                   {r.matched_chunks.length} matched chunk
                   {r.matched_chunks.length > 1 ? "s" : ""}
                 </summary>
-                <div className="mt-1 space-y-1">
+                <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {r.matched_chunks.map((mc) => (
-                    <div key={mc.chunk_id} className="text-xs rounded bg-gray-50 p-2">
-                      <span className="font-mono text-gray-400">
+                    <div
+                      key={mc.chunk_id}
+                      style={{
+                        fontSize: "12px",
+                        background: "#1f1f1f",
+                        borderRadius: "4px",
+                        padding: "8px",
+                      }}
+                    >
+                      <span style={{ fontFamily: "monospace", color: "#9ca3af" }}>
                         chunk {mc.chunk_index}
                       </span>
-                      <span className="ml-2 text-gray-400">
+                      <span style={{ marginLeft: "8px", color: "#9ca3af" }}>
                         {(mc.similarity * 100).toFixed(1)}%
                       </span>
-                      <p className="mt-0.5 text-gray-600">{mc.content_preview}</p>
+                      <p style={{ marginTop: "4px", color: "#d1d5db" }}>{mc.content_preview}</p>
                     </div>
                   ))}
                 </div>
               </details>
             )}
 
-            <div className="mt-3 flex gap-2">
+            <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
               <a
                 href={`/documents/${r.document_id}`}
-                className="rounded border px-3 py-1 text-xs hover:bg-gray-50"
+                style={{
+                  borderRadius: "4px",
+                  border: "1px solid #2a2a2a",
+                  padding: "4px 12px",
+                  fontSize: "12px",
+                  color: "#9ca3af",
+                  textDecoration: "none",
+                }}
               >
                 Open document
               </a>
