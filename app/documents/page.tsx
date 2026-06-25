@@ -203,9 +203,8 @@ function renderPage(
           {docs.map((d) => (
             <tr
               key={d.id}
+              className="doc-row"
               style={{ borderBottom: "1px solid #2a2a2a" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1f1f1f")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
               <td style={{ padding: "10px 12px 10px 0", maxWidth: "360px" }}>
                 <Link

@@ -31,3 +31,7 @@ body {
   color: var(--text);
   font-family: system-ui, Arial, Helvetica, sans-serif;
 }
+
+tr.doc-row:hover {
+  background-color: #1f1f1f;
+}
