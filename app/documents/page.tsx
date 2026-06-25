@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { UploadForm } from "./upload-form";
 import { Filters } from "./filters";
+import { ReprocessButton } from "./reprocess-button";
 import Link from "next/link";
 
 function StatusBadge({ status }: { status: string | null }) {
@@ -221,13 +222,16 @@ function renderPage(
               <td style={{ padding: "10px 12px 10px 0" }}>
                 <StatusBadge status={d.processing_status} />
               </td>
-              <td style={{ padding: "10px 0" }}>
+              <td style={{ padding: "10px 0", display: "flex", gap: "8px", alignItems: "center" }}>
                 <Link
                   href={`/documents/${d.id}`}
                   style={{ color: "#9ca3af", textDecoration: "none", fontSize: "12px" }}
                 >
                   View
                 </Link>
+                {["queued", "uploaded", "failed"].includes(d.processing_status) && (
+                  <ReprocessButton documentId={d.id} />
+                )}
               </td>
             </tr>
           ))}
