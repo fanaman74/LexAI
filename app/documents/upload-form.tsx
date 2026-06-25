@@ -63,28 +63,40 @@ export function UploadForm() {
     whiteSpace: "nowrap" as const,
   });
 
+  const sectionStyle = (color: string) => ({
+    padding: "12px 14px",
+    borderRadius: "8px",
+    border: `1px solid ${color}33`,
+    backgroundColor: `${color}0d`,
+  });
+
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column" as const, gap: "10px" }}>
       {/* File upload */}
-      <form onSubmit={onSubmit} style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-        <input
-          ref={fileRef}
-          type="file"
-          name="files"
-          multiple
-          required
-          accept=".pdf,.docx,.xlsx,.msg,.eml"
-          style={{ color: "#9ca3af", fontSize: "13px" }}
-        />
-        <button disabled={busy} style={btnStyle(busy)}>
-          {busy ? "Uploading…" : "+ Add files"}
-        </button>
-      </form>
+      <div style={sectionStyle("#f59e0b")}>
+        <p style={{ fontSize: "11px", fontWeight: 600, color: "#f59e0b", marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>
+          Upload files
+        </p>
+        <form onSubmit={onSubmit} style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" as const }}>
+          <input
+            ref={fileRef}
+            type="file"
+            name="files"
+            multiple
+            required
+            accept=".pdf,.docx,.xlsx,.msg,.eml"
+            style={{ color: "#d1d5db", fontSize: "13px" }}
+          />
+          <button disabled={busy} style={btnStyle(busy)}>
+            {busy ? "Uploading…" : "+ Add files"}
+          </button>
+        </form>
+      </div>
 
       {/* Folder upload */}
-      <div style={{ marginTop: "10px" }}>
-        <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
-          Or upload a folder (all subfolders included):
+      <div style={sectionStyle("#60a5fa")}>
+        <p style={{ fontSize: "11px", fontWeight: 600, color: "#60a5fa", marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>
+          Upload folder <span style={{ fontWeight: 400, color: "#6b7280" }}>— includes all subfolders</span>
         </p>
         <input
           ref={folderRef}
@@ -93,7 +105,7 @@ export function UploadForm() {
           webkitdirectory=""
           multiple
           onChange={(e) => handleFiles(e.currentTarget.files)}
-          style={{ color: "#9ca3af", fontSize: "13px" }}
+          style={{ color: "#d1d5db", fontSize: "13px" }}
         />
       </div>
 
