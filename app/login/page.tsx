@@ -49,9 +49,9 @@ export default async function LoginPage(
         <form style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <input
             name="email"
-            type="email"
+            type="text"
             required
-            placeholder="Email"
+            placeholder="Username"
             style={{
               width: "100%",
               padding: "10px 12px",

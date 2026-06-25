@@ -2,10 +2,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+function toEmail(raw: string) {
+  return raw.includes("@") ? raw : `${raw}@lexai.local`;
+}
+
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
-    email: String(formData.get("email")),
+    email: toEmail(String(formData.get("email"))),
     password: String(formData.get("password")),
   });
   if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
