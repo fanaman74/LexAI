@@ -137,15 +137,27 @@ export function UploadForm() {
         <p style={{ fontSize: "11px", fontWeight: 600, color: "#60a5fa", marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>
           Upload folder <span style={{ fontWeight: 400, color: "#6b7280" }}>— includes all subfolders</span>
         </p>
-        <input
-          ref={folderRef}
-          type="file"
-          // @ts-expect-error — webkitdirectory is not in React types
-          webkitdirectory=""
-          multiple
-          onChange={(e) => handleFiles(e.currentTarget.files)}
-          style={{ color: "#d1d5db", fontSize: "13px" }}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            ref={folderRef}
+            id="folder-input"
+            type="file"
+            // @ts-expect-error — webkitdirectory is not in React types
+            webkitdirectory=""
+            multiple
+            onChange={(e) => handleFiles(e.currentTarget.files)}
+            style={{ display: "none" }}
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => folderRef.current?.click()}
+            style={{ ...btnStyle(busy), backgroundColor: busy ? "#555" : "#60a5fa" }}
+          >
+            {busy ? "Uploading…" : "+ Add folder"}
+          </button>
+          <span style={{ fontSize: "13px", color: "#6b7280" }} id="folder-label">No folder chosen</span>
+        </div>
       </div>
 
       {progress && (
