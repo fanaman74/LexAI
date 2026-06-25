@@ -17,8 +17,8 @@ const navItems = [
     ),
   },
   {
-    to: "/library",
-    label: "Library",
+    to: "/docmgmt",
+    label: "DocMgmt",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -57,6 +57,29 @@ const navItems = [
     ),
   },
   {
+    to: "/analytics",
+    label: "Analytics",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+  },
+  {
+    to: "/graph",
+    label: "Graph",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <circle cx="6" cy="6" r="3" />
+        <circle cx="18" cy="6" r="3" />
+        <circle cx="12" cy="18" r="3" />
+        <path d="M8.7 7.6l6.6 0M7.5 8.7l3 6.6M16.5 8.7l-3 6.6" />
+      </svg>
+    ),
+  },
+  {
     to: "/chat",
     label: "Chat",
     icon: (
@@ -74,47 +97,49 @@ export default function Sidebar() {
     api<IndexStatus>("/api/index/status").then(setStatus).catch(() => {});
   }, []);
 
-  const activeClass = "text-amber-400 after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-amber-400";
-  const inactiveClass = "text-zinc-500 hover:text-amber-400";
+  const activeClass = "text-stone-50 bg-white/[0.03] border-white/10";
+  const inactiveClass = "text-zinc-500 hover:text-amber-200 border-transparent hover:border-white/10";
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 bg-black/90 backdrop-blur-sm border-b border-zinc-900 z-30 flex items-center px-6">
-      {/* Logo */}
-      <span className="text-white font-bold text-base tracking-tight shrink-0 mr-8">
-        Lex<span className="text-amber-400">AI</span>
-      </span>
+    <header className="fixed top-0 left-0 right-0 z-30 border-b border-white/10 bg-black/76 backdrop-blur-xl">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-4 px-6">
+        <div className="shrink-0">
+          <p className="msoit-kicker !text-[10px] !tracking-[0.24em]">LexAI Platform</p>
+          <span className="mt-1 block text-base font-semibold tracking-[-0.02em] text-white">
+            Lex<span className="text-amber-400">AI</span>
+          </span>
+        </div>
 
-      {/* Nav centered */}
-      <nav className="flex-1 flex justify-center">
-        <ul className="flex items-center gap-1">
+        <nav className="flex-1 overflow-x-auto">
+          <ul className="flex items-center justify-center gap-2 min-w-max">
           {navItems.map(({ to, label, end, icon }) => (
             <li key={to}>
               <NavLink
                 to={to}
                 end={end}
                 className={({ isActive }) =>
-                  `relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  `flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                     isActive ? activeClass : inactiveClass
                   }`
                 }
               >
                 {icon}
-                <span className="hidden sm:block">{label}</span>
+                <span>{label}</span>
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
 
-      {/* Status pill */}
-      <div className="shrink-0 ml-8">
+      <div className="hidden shrink-0 lg:block">
         {status ? (
-          <span className="text-xs text-zinc-600">
+          <span className="inline-flex items-center rounded-full border border-amber-500/25 bg-amber-500/8 px-3 py-1 text-xs text-amber-100/80">
             {status.status === "running"
               ? `indexing ${status.indexed}/${status.total}`
               : `${status.indexed} indexed`}
           </span>
         ) : null}
+      </div>
       </div>
     </header>
   );

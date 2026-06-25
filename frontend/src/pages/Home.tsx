@@ -118,37 +118,37 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden px-6 py-16">
-      {/* background glow */}
-      <div className="absolute w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="msoit-page relative overflow-hidden">
+      <div className="pointer-events-none absolute -left-16 top-0 h-72 w-72 rounded-full bg-amber-500/8 blur-3xl" />
+      <div className="pointer-events-none absolute right-0 top-16 h-64 w-64 rounded-full bg-amber-500/6 blur-3xl" />
 
-      <div className="relative z-10 w-full max-w-6xl flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+      <div className="relative z-10 grid items-start gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
 
         {/* Left: text + CTAs */}
         <div
-          className="flex-1 text-center lg:text-left opacity-0"
+          className="opacity-0"
           style={{ animation: "fadeSlideUp 0.6s ease-out 0.1s forwards" }}
         >
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-            Your Legal Work,{" "}
-            <span className="text-amber-400">Intelligently Organised</span>
+          <span className="msoit-kicker">Operational Review</span>
+          <h1 className="msoit-section-title mt-6 max-w-4xl">
+            Legal document systems for search, review, and grounded AI answers.
           </h1>
 
-          <p className="text-zinc-400 text-lg sm:text-xl mb-10 max-w-lg mx-auto lg:mx-0">
-            Ingest case files, extract key facts with AI, and review everything in one place — entirely on your machine.
+          <p className="msoit-lead mt-6 max-w-2xl">
+            Upload case files, structure them into matters, search across originals and extracted text, then move into graph-aware review and chat without losing the link back to source documents.
           </p>
 
-          <div className="flex gap-4 justify-center lg:justify-start flex-wrap">
+          <div className="mt-8 flex flex-wrap gap-3">
             <button
               onClick={openModal}
               disabled={uploading}
-              className="bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-700 text-black rounded-xl px-8 py-3.5 font-semibold text-lg shadow-lg transition-colors"
+              className="msoit-button msoit-button-primary disabled:bg-zinc-700 disabled:text-zinc-500"
             >
               {uploading ? "Uploading…" : "Upload Files"}
             </button>
             <button
               onClick={startScan}
-              className="border border-amber-500/60 text-amber-400 hover:bg-amber-500/10 rounded-xl px-8 py-3.5 font-semibold text-lg transition-colors"
+              className="msoit-button msoit-button-secondary"
             >
               Add Folder
             </button>
@@ -166,15 +166,25 @@ export default function Home() {
             </div>
           )}
 
-          <div className="mt-8">
-            <Link to="/library" className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors">
-              Browse Library →
-            </Link>
+          <div className="mt-10 flex flex-wrap gap-8 text-sm">
+            <div>
+              <p className="text-zinc-500 uppercase tracking-[0.18em] text-[11px]">Core workflow</p>
+              <p className="mt-2 text-zinc-300">Ingest. Search. Review. Explain.</p>
+            </div>
+            <div>
+              <p className="text-zinc-500 uppercase tracking-[0.18em] text-[11px]">Deployment</p>
+              <p className="mt-2 text-zinc-300">Local files, PostgreSQL, optional Neo4j graph</p>
+            </div>
+            <div>
+              <Link to="/docmgmt" className="text-amber-300 hover:text-amber-200 text-sm transition-colors">
+                Open DocMgmt →
+              </Link>
+            </div>
           </div>
 
           {stats && (
             <div
-              className="mt-12 flex gap-4 justify-center lg:justify-start flex-wrap opacity-0"
+              className="mt-12 grid gap-3 sm:grid-cols-3 opacity-0"
               style={{ animation: "fadeSlideUp 0.6s ease-out 0.5s forwards" }}
             >
               {[
@@ -182,9 +192,9 @@ export default function Home() {
                 { label: "Indexed", value: stats.indexed },
                 { label: "Failed", value: stats.failed },
               ].map((s) => (
-                <div key={s.label} className="bg-zinc-950 border border-zinc-800 rounded-xl px-6 py-4 text-center min-w-[90px]">
-                  <p className="text-2xl font-bold text-white">{s.value}</p>
-                  <p className="text-xs text-zinc-500 mt-1 uppercase tracking-wide">{s.label}</p>
+                <div key={s.label} className="msoit-stat px-5 py-4">
+                  <p className="text-3xl font-semibold text-white">{s.value}</p>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-zinc-500">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -193,9 +203,18 @@ export default function Home() {
 
         {/* Right: animated orbital circle */}
         <div
-          className="shrink-0 opacity-0"
+          className="msoit-panel overflow-hidden p-6 sm:p-8 opacity-0"
           style={{ animation: "fadeSlideUp 0.8s ease-out 0.3s forwards" }}
         >
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <div>
+              <p className="msoit-rule-title">Platform Flow</p>
+              <p className="mt-3 text-sm text-zinc-400">A review path from raw files to structured legal answers.</p>
+            </div>
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-200">
+              Live
+            </span>
+          </div>
           <svg viewBox="0 0 560 560" className="w-72 h-72 sm:w-80 sm:h-80 lg:w-[420px] lg:h-[420px]" aria-hidden="true">
             <defs>
               {/* orbit path: full circle, starting from top */}
@@ -268,11 +287,12 @@ export default function Home() {
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           <div
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 w-full max-w-md"
+            className="msoit-panel w-full max-w-md p-6 sm:p-8"
             style={{ animation: "fadeSlideUp 0.2s ease-out forwards" }}
           >
-            <h2 className="text-white font-bold text-xl mb-1">Upload Files</h2>
-            <p className="text-zinc-400 text-sm mb-6">Optionally assign to a case</p>
+            <span className="msoit-kicker">New intake</span>
+            <h2 className="mt-5 text-2xl font-semibold text-white">Upload Files</h2>
+            <p className="mt-2 text-sm text-zinc-400">Optionally assign incoming material to an existing case.</p>
 
             <form onSubmit={handleModalUpload} className="space-y-5">
               {/* File picker */}
@@ -284,7 +304,7 @@ export default function Home() {
                   accept=".pdf,.docx,.doc,.msg,.eml,.xlsx,.csv,.txt,.rtf"
                   required
                   onChange={(e) => setPendingFiles(Array.from(e.target.files ?? []))}
-                  className="w-full text-zinc-300 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-zinc-800 file:text-zinc-300 file:hover:bg-zinc-700 file:cursor-pointer file:transition-colors"
+                  className="w-full text-zinc-300 text-sm file:mr-4 file:rounded-full file:border file:border-white/10 file:bg-white/[0.04] file:px-4 file:py-2 file:text-zinc-200 file:hover:bg-white/[0.08] file:cursor-pointer file:transition-colors"
                 />
                 {pendingFiles.length > 0 && (
                   <p className="text-zinc-500 text-xs mt-1">
@@ -299,7 +319,7 @@ export default function Home() {
                 <select
                   value={selectedCaseId}
                   onChange={(e) => setSelectedCaseId(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-zinc-300 text-sm focus:outline-none focus:border-amber-500"
+                  className="msoit-select text-sm"
                 >
                   <option value="__none__">— No case —</option>
                   {cases.map((c) => (
@@ -318,7 +338,7 @@ export default function Home() {
                     value={newCaseName}
                     onChange={(e) => setNewCaseName(e.target.value)}
                     required
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-amber-500"
+                    className="msoit-input text-sm"
                   />
                 </div>
               )}
@@ -329,7 +349,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={uploading || pendingFiles.length === 0}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-700 text-black font-semibold py-2.5 rounded-lg text-sm transition-colors"
+                  className="msoit-button msoit-button-primary flex-1 disabled:bg-zinc-700 disabled:text-zinc-500"
                 >
                   {uploading ? "Uploading…" : "Upload"}
                 </button>
