@@ -15,6 +15,10 @@ create index if not exists clients_user_id_idx on clients(user_id);
 alter table documents add column if not exists client_id uuid references clients(id) on delete set null;
 create index if not exists documents_client_id_idx on documents(client_id);
 
+-- Grants
+grant all on table clients to authenticated;
+grant all on table clients to service_role;
+
 -- RLS
 alter table clients enable row level security;
 
