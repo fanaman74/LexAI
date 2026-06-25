@@ -47,7 +47,8 @@ export async function GET(req: NextRequest) {
   // Build node set from mentions
   const nodeMap: Record<string, { id: string; name: string; type: string; documents: string[] }> = {};
   for (const m of mentions ?? []) {
-    const e = m.entities as { id: string; name: string; type: string } | null;
+    const raw = m.entities;
+    const e = (Array.isArray(raw) ? raw[0] : raw) as { id: string; name: string; type: string } | null;
     if (!e) continue;
     if (!nodeMap[e.id]) {
       nodeMap[e.id] = { id: e.id, name: e.name, type: e.type, documents: [] };
