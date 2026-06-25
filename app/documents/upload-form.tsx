@@ -152,7 +152,7 @@ export function UploadForm() {
             type="button"
             disabled={busy}
             onClick={() => folderRef.current?.click()}
-            style={{ ...btnStyle(busy), backgroundColor: busy ? "#555" : "#60a5fa" }}
+            style={{ ...btnStyle(busy), backgroundColor: busy ? "#555" : "#60a5fa", color: busy ? "#999" : "#000" }}
           >
             {busy ? "Uploading…" : "+ Add folder"}
           </button>
