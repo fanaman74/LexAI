@@ -1,10 +1,11 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Result = {
   document_id?: string; original_filename: string;
   status: string; is_duplicate?: boolean; error?: string;
 };
+type Client = { id: string; name: string };
 
 const ACCEPTED_EXTS = new Set([".pdf", ".docx", ".xlsx", ".msg", ".eml"]);
 
@@ -15,20 +16,29 @@ function filterFiles(fileList: FileList): File[] {
   });
 }
 
-async function submitFiles(files: File[]): Promise<Result[]> {
+async function submitFiles(files: File[], clientId: string): Promise<Result[]> {
   const fd = new FormData();
   for (const f of files) fd.append("files", f);
+  if (clientId) fd.append("client_id", clientId);
   const res = await fetch("/api/documents/upload", { method: "POST", body: fd });
   const json = await res.json();
   return json.results ?? [];
 }
 
 export function UploadForm() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientId, setClientId] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/clients").then((r) => r.json()).then((data) => {
+      if (Array.isArray(data)) setClients(data);
+    }).catch(() => {});
+  }, []);
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList) return;
@@ -37,7 +47,7 @@ export function UploadForm() {
     setBusy(true);
     setResults([]);
     setProgress(`Uploading ${files.length} file${files.length !== 1 ? "s" : ""}…`);
-    const res = await submitFiles(files);
+    const res = await submitFiles(files, clientId);
     setResults(res);
     setProgress("");
     setBusy(false);
@@ -72,6 +82,35 @@ export function UploadForm() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" as const, gap: "10px" }}>
+      {/* Client selector */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <label style={{ fontSize: "12px", color: "#9ca3af", whiteSpace: "nowrap" as const }}>Client:</label>
+        <select
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          style={{
+            padding: "7px 10px",
+            fontSize: "13px",
+            borderRadius: "6px",
+            border: "1px solid #2a2a2a",
+            backgroundColor: "#111",
+            color: clientId ? "#ffffff" : "#6b7280",
+            outline: "none",
+            minWidth: "200px",
+          }}
+        >
+          <option value="">— No client —</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        {clients.length === 0 && (
+          <a href="/clients" style={{ fontSize: "12px", color: "#f59e0b", textDecoration: "none" }}>
+            + Add clients
+          </a>
+        )}
+      </div>
+
       {/* File upload */}
       <div style={sectionStyle("#f59e0b")}>
         <p style={{ fontSize: "11px", fontWeight: 600, color: "#f59e0b", marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>
@@ -110,11 +149,11 @@ export function UploadForm() {
       </div>
 
       {progress && (
-        <p style={{ marginTop: "8px", fontSize: "13px", color: "#f59e0b" }}>{progress}</p>
+        <p style={{ fontSize: "13px", color: "#f59e0b" }}>{progress}</p>
       )}
 
       {results.length > 0 && (
-        <ul style={{ marginTop: "10px", listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+        <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
           {results.map((r, i) => (
             <li key={i} style={{ display: "flex", gap: "8px", fontSize: "13px" }}>
               <span style={{ color: "#ffffff" }}>{r.original_filename}</span>

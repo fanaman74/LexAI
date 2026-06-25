@@ -15,6 +15,7 @@ export async function POST(request: Request) {
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
   if (files.length === 0)
     return NextResponse.json({ error: "no files" }, { status: 400 });
+  const clientId = (form.get("client_id") as string | null) || null;
 
   const results = [];
   for (const file of files) {
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
           duplicate_of_document_id: dup?.id ?? null,
           source_type: sourceType,
           processing_status: "uploaded",
+          client_id: clientId,
         })
         .select("id")
         .single();
